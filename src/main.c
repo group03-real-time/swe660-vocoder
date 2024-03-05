@@ -9,8 +9,13 @@
 #include <unistd.h>
 #include <fcntl.h>
 
+/* original run: 44100 * 5 samples in 32.46 seconds
+ * so the samples_per_sec we can run with using the fd method is: 6792
+ */
+#define SAMPLES_PER_SEC 6792
+
 /* 5 second audio clip */
-int total_samples = 44100 * 5;
+int total_samples = SAMPLES_PER_SEC * 5;
 
 void write_int32(FILE *file, int32_t i) {
 	putc((i >> 0 ) & 0xFF, file);
@@ -47,8 +52,8 @@ void write_wav_header(FILE *file) {
 	write_int32(file, 16);
 	write_int16(file, 1); /* PCM */
 	write_int16(file, 2); /* stereo */
-	write_int32(file, 44100); /* sample rate */
-	write_int32(file, (44100 * 16 * 2) / 8);
+	write_int32(file, SAMPLES_PER_SEC); /* sample rate */
+	write_int32(file, (SAMPLES_PER_SEC * 16 * 2) / 8);
 	write_int16(file, (16 * 2) / 8);
 	write_int16(file, 16); /* 16 bits per sample */
 	fputc('d', file);
