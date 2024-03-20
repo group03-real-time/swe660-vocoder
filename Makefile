@@ -15,12 +15,15 @@ SRCS=\
 	app.c\
 	gpio_pins.c\
 	good_user_input.c\
+	dsp/bpf.c\
+	dsp/vocoder.c\
 
 # List of subdirectories inside src. Needed to keep the build fast.
-SRC_DIRECTORIES=
+SRC_DIRECTORIES=dsp
 
 # List of flags we want for the C compiler
 CFLAGS_DEFAULT=-Wall -Werror -std=gnu11 -O3 -Wno-error=unused-result
+LDFLAGS_DEFAULT=-lm
 
 # The default SSH target, or whatever, for the beaglebone. Can be overridden
 # if needed. Used for automatically running on the beaglebone.
@@ -57,7 +60,10 @@ TARGETS=$(BUILDS:%=$(TARGET)-%)
 
 # The top-level build rule / PHONY target all -- just corresponds to building
 # the final executable. Used to make it clear where the rules begin.
-all: $(TARGETS)
+all: $(TARGETS) testwav
+
+testwav: src/dsp/bpf.c src/dsp/vocoder.c src/dsp/testwav.c
+	gcc $^ -o $@ -O3 -lm
 
 define RUN_CROSS_template = 
 
@@ -93,7 +99,7 @@ DEFS_$(1)?=
 # - The standard CFLAGS we configured in CFLAGS_DEFAULT
 # - A -D<Macro> flag for every macro defined in the DEFS variable.
 CFLAGS_$(1):=$$(CFLAGS_$(1)) $$(CFLAGS) $$(CFLAGS_DEFAULT) $$(DEFS_$(1):%=-D%) -DTARGET_NAME='"$(TARGET)"'
-LDFLAGS_$(1)?=
+LDFLAGS_$(1):=$$(LDFLAGS) $$(LDFLAGS_DEFAULT)
 
 # The build directories are the directories we need to exist for our compiled
 # .o files. If they don't exist, gcc will complain it can't output to a

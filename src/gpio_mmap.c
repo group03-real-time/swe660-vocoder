@@ -68,11 +68,25 @@ static int32_t gpio_refcounts[4] = {0};
  */
 static const off_t gpio_start_addresses[4] = { GPIO0_START, GPIO1_START, GPIO2_START, GPIO3_START };
 
+static volatile void *adc_address = NULL;
+
 /** 
  * We need to open() /dev/mem in order to use the memory mapped registers.
  * This fd is used throughout the program unless all refcounts drop to 0.
  */
 static int_fd dev_mem_fd = -1;
+
+void
+gpio_get_devmem() {
+	/* If we don't have an FD for /dev/mem, we need to obtain one. */
+	if(dev_mem_fd < 0) {
+		dev_mem_fd = open("/dev/mem", O_RDWR);
+
+		if(dev_mem_fd < 0) {
+			app_fatal_error("could not open /dev/mem fd for memory mapped IO");
+		}
+	}
+}
 
 /**
  * A helper function to obtain the GPIO_START for a given index [0-3].
@@ -88,14 +102,7 @@ gpio_get_mapping(int32_t index) {
 		return gpio_addresses[index];
 	}
 
-	/* If we don't have an FD for /dev/mem, we need to obtain one. */
-	if(dev_mem_fd < 0) {
-		dev_mem_fd = open("/dev/mem", O_RDWR);
-
-		if(dev_mem_fd < 0) {
-			app_fatal_error("could not open /dev/mem fd for memory mapped IO");
-		}
-	}
+	gpio_get_devmem();
 
 	/* Try to obtain the mapping. */
 	void *mapping = mmap(NULL, GPIO_LENGTH, 
@@ -220,6 +227,31 @@ gpio_close(gpio_pin pin) {
 			return;
 		}
 	}
+}
+
+#define ADC_LENGTH 4096
+#define ADC_START  0x44E0D000 
+
+#define ADC_STEPCONFIG1 0x68
+#define ADC_STEPDELAY1  0x6C
+
+void
+gpio_analog_open() {
+	gpio_get_devmem();
+
+	if(!adc_address) {
+		adc_address = mmap(NULL, ADC_LENGTH, 
+		PROT_READ | PROT_WRITE, /* Need to read and write. */
+		MAP_SHARED,             /* We want all our changes to /dev/mem to be visible. */
+		dev_mem_fd,             /* Write to /dev/mem, so that we can write to specific memory addresses. */
+		ADC_START); 
+
+		if(!adc_address) {
+			app_fatal_error("could not open adc");
+		}
+	}
+
+
 }
 
 #endif /* USE_MMAP_GPIO */
