@@ -18,7 +18,7 @@ vc_process(vocoder *v, float mod, float car) {
 		/* Then, update the envelope follower. We basically low-pass-filter
 		 * the absolute value of the signal. */
 		float ef = fabsf(v->mod_filters[i].y[0]);
-		v->envelope_follow[i] += (ef - v->envelope_follow[i]) * 0.07;
+		v->envelope_follow[i] += (ef - v->envelope_follow[i]) * 0.008;
 
 		/* Finally, update each of the carrier filters, and multiply them
 		 * by the ef value. */
@@ -32,8 +32,14 @@ vc_process(vocoder *v, float mod, float car) {
 
 void
 vc_init(vocoder *v) {
-	double freq_div = 0.5 / (VOCODER_BANDS + 1);
-	double bandwidth = freq_div;
+	double min_freq = 0;
+	double max_freq = 10000.0 / SAMPLE_RATE;
+	double range = (max_freq - min_freq);
+
+	//double total_octaves = log2(SAMPLE_RATE / 2.0);
+
+	double freq_div = range / (VOCODER_BANDS + 1);
+	//double bandwidth = total_octaves * freq_div;
 
 	/* Basically: don't create a band at 0 or 0.5, but at evenly spaced
 	 * divisions within 0--0.5 */
@@ -43,8 +49,10 @@ vc_init(vocoder *v) {
 		memset(&v->carrier_filters[i], 0, sizeof(rbj_eq));
 		memset(&v->mod_filters[i], 0, sizeof(rbj_eq));
 
-		eq_create_bpf(&v->carrier_filters[i], f, bandwidth);
-		eq_create_bpf(&v->mod_filters[i], f, bandwidth);
+		//double frac_bw = (2.0 * freq_div) / f;
+
+		eq_create_bpf(&v->carrier_filters[i], f, f / (2.0 * freq_div));
+		eq_create_bpf(&v->mod_filters[i], f, f / (2.0 * freq_div));
 
 		f += freq_div;
 	}

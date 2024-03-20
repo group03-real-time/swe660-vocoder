@@ -6,9 +6,37 @@
 #include "vocoder.h"
 
 #include <stdint.h>
+#include <stdlib.h>
 
 #define DR_WAV_IMPLEMENTATION
 #include "dr_wav.h"
+
+static void
+write_output(const char *fp, float *arr, int out_channels, int out_frames, int out_sr) {
+	/* Writing the output data */
+	drwav wav;
+	
+	// Setup the data format.
+	drwav_data_format format;
+    format.container     = drwav_container_riff;      // riff = normal data format.
+    format.format        = DR_WAVE_FORMAT_IEEE_FLOAT; // FLOAT for 32 bit float data format. TODO: Consider if we want to write 16 bit wavs?
+    format.channels      = out_channels;
+    format.sampleRate    = out_sr;
+    format.bitsPerSample = 32; // 32 bit float
+
+	/* Write output */
+	if(!drwav_init_file_write_sequential_pcm_frames(
+		&wav,
+		fp,
+		&format,
+		out_frames,
+		NULL)) {
+			printf("couldn't open output file %s\n", fp);
+			exit(1);
+		}
+
+	drwav_write_pcm_frames(&wav, out_frames, arr);
+}
 
 int main(int argc, char **argv) {
 	if(argc < 4) {
@@ -65,7 +93,17 @@ int main(int argc, char **argv) {
 	drwav_uint64 out_frames = (mod_frames > car_frames) ? mod_frames : car_frames;
 	unsigned int out_sr = SAMPLE_RATE;
 
+#define ARR calloc(out_frames * out_channels, sizeof(*out))
 	float *out = calloc(out_frames * out_channels, sizeof(*out));
+
+	float *mbpf_test[VOCODER_BANDS];
+	float *e_test[VOCODER_BANDS];
+	float *cbpf_test[VOCODER_BANDS];
+	for(int i = 0; i < VOCODER_BANDS; ++i) {
+		mbpf_test[i] = ARR;
+		e_test[i] = ARR;
+		cbpf_test[i] = ARR;
+	}
 
 	/* Initialize the vocoder */
 	vocoder voc;
@@ -81,32 +119,28 @@ int main(int argc, char **argv) {
 		float o = vc_process(&voc, m, c);
 		out[i] = o;
 
+		for(int j = 0; j < VOCODER_BANDS; ++j) {
+			mbpf_test[j][i] = voc.mod_filters[j].y[0];
+			cbpf_test[j][i] = voc.carrier_filters[j].y[0];
+			e_test[j][i] = voc.envelope_follow[j];
+		}
+
 		/* Only use the leftmost channel */
 		mi += mod_channels;
 		ci += car_channels;
 	}
 
-	/* Writing the output data */
-	drwav wav;
-	
-	// Setup the data format.
-	drwav_data_format format;
-    format.container     = drwav_container_riff;      // riff = normal data format.
-    format.format        = DR_WAVE_FORMAT_IEEE_FLOAT; // FLOAT for 32 bit float data format. TODO: Consider if we want to write 16 bit wavs?
-    format.channels      = out_channels;
-    format.sampleRate    = out_sr;
-    format.bitsPerSample = 32; // 32 bit float
+#define WRITE(arr, fp) write_output(fp, arr, out_channels, out_frames, out_sr)
 
-	/* Write output */
-	if(!drwav_init_file_write_sequential_pcm_frames(
-		&wav,
-		out_fp,
-		&format,
-		out_frames,
-		NULL)) {
-			printf("couldn't open output file %s\n", out_fp);
-			return 5;
-		}
+	WRITE(out, out_fp);
 
-	drwav_write_pcm_frames(&wav, out_frames, out);
+	for(int i = 0; i < VOCODER_BANDS; ++i) {
+		char buf[64] = {0};
+		sprintf(buf, "mbpf_%d.wav", i);
+		WRITE(mbpf_test[i], buf);
+		sprintf(buf, "env_%d.wav", i);
+		WRITE(e_test[i], buf);
+		sprintf(buf, "cbpf_%d.wav", i);
+		WRITE(cbpf_test[i], buf);
+	}
 }
