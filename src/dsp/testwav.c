@@ -106,8 +106,8 @@ int main(int argc, char **argv) {
 	}
 
 	/* Initialize the vocoder */
-	vocoder voc;
-	vc_init(&voc);
+	//vocoder voc;
+	vocoder *voc = vc_new();
 
 	int mi = 0;
 	int ci = 0;
@@ -116,13 +116,13 @@ int main(int argc, char **argv) {
 		float m = (mi < mod_frames) ? modulator[mi] : 0.0;
 		float c = (ci < car_frames) ? carrier[ci] : 0.0;
 
-		float o = vc_process(&voc, m, c);
+		float o = vc_process(voc, m, c);
 		out[i] = o;
 
 		for(int j = 0; j < VOCODER_BANDS; ++j) {
-			mbpf_test[j][i] = voc.mod_filters[j].y[0];
-			cbpf_test[j][i] = voc.carrier_filters[j].y[0];
-			e_test[j][i] = voc.envelope_follow[j];
+			//mbpf_test[j][i] = voc.mod_filters[j].y[0];
+			//cbpf_test[j][i] = voc.carrier_filters[j].y[0];
+			//e_test[j][i] = voc->envelope_follow[j];
 		}
 
 		/* Only use the leftmost channel */
@@ -136,11 +136,11 @@ int main(int argc, char **argv) {
 
 	for(int i = 0; i < VOCODER_BANDS; ++i) {
 		char buf[64] = {0};
-		sprintf(buf, "mbpf_%d.wav", i);
-		WRITE(mbpf_test[i], buf);
-		sprintf(buf, "env_%d.wav", i);
-		WRITE(e_test[i], buf);
-		sprintf(buf, "cbpf_%d.wav", i);
-		WRITE(cbpf_test[i], buf);
+		//sprintf(buf, "mbpf_%d.wav", i);
+		//WRITE(mbpf_test[i], buf);
+		//printf(buf, "env_%d.wav", i);
+		//WRITE(e_test[i], buf);
+		//sprintf(buf, "cbpf_%d.wav", i);
+		//WRITE(cbpf_test[i], buf);
 	}
 }

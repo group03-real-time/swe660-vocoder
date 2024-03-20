@@ -3,6 +3,14 @@
 #include <math.h>
 #include <string.h>
 
+#include "../../iir1/iir/Butterworth.h"
+
+struct vocoder {
+	Iir::Butterworth::BandPass<4> mod_filters[VOCODER_BANDS];
+	Iir::Butterworth::BandPass<4> car_filters[VOCODER_BANDS];
+	float envelope_follow[VOCODER_BANDS];
+};
+
 float
 vc_process(vocoder *v, float mod, float car) {
 	/* TODO: Optimization:
@@ -12,26 +20,30 @@ vc_process(vocoder *v, float mod, float car) {
 	float sum = 0.0;
 
 	for(int i = 0; i < VOCODER_BANDS; ++i) {
+		float m = v->mod_filters[i].filter<float>(mod);
 		/* First, update the eq band for measuring modulator amplitude */
-		eq_update(&v->mod_filters[i], mod);
+		//eq_update(&v->mod_filters[i], mod);
 
 		/* Then, update the envelope follower. We basically low-pass-filter
 		 * the absolute value of the signal. */
-		float ef = fabsf(v->mod_filters[i].y[0]);
+		float ef = fabsf(m);
 		v->envelope_follow[i] += (ef - v->envelope_follow[i]) * 0.008;
 
 		/* Finally, update each of the carrier filters, and multiply them
 		 * by the ef value. */
-		eq_update(&v->carrier_filters[i], car);
+		//eq_update(&v->carrier_filters[i], car);
+		float c = v->car_filters[i].filter<float>(car);
 
-		sum += v->carrier_filters[i].y[0] * v->envelope_follow[i];
+		sum += c * v->envelope_follow[i];
 	}
 
 	return sum;
 }
 
-void
-vc_init(vocoder *v) {
+vocoder*
+vc_new() {
+	vocoder *v = new vocoder();
+	
 	double min_freq = 0;
 	double max_freq = 10000.0 / SAMPLE_RATE;
 	double range = (max_freq - min_freq);
@@ -46,14 +58,20 @@ vc_init(vocoder *v) {
 	double f = freq_div;
 
 	for(int i = 0; i < VOCODER_BANDS; ++i) {
-		memset(&v->carrier_filters[i], 0, sizeof(rbj_eq));
-		memset(&v->mod_filters[i], 0, sizeof(rbj_eq));
+		v->envelope_follow[i] = 0;
+
+		v->mod_filters[i].setupN(f, freq_div);
+		v->car_filters[i].setupN(f, freq_div);
+		//memset(&v->carrier_filters[i], 0, sizeof(rbj_eq));
+		//memset(&v->mod_filters[i], 0, sizeof(rbj_eq));
 
 		//double frac_bw = (2.0 * freq_div) / f;
 
-		eq_create_bpf(&v->carrier_filters[i], f, f / (2.0 * freq_div));
-		eq_create_bpf(&v->mod_filters[i], f, f / (2.0 * freq_div));
+		//eq_create_bpf(&v->carrier_filters[i], f, f / (2.0 * freq_div));
+		//eq_create_bpf(&v->mod_filters[i], f, f / (2.0 * freq_div));
 
 		f += freq_div;
 	}
+
+	return v;
 }
