@@ -6,11 +6,12 @@
 #include "../../iir1/iir/Butterworth.h"
 
 struct vocoder {
-	Iir::Butterworth::BandPass<2> mod_filters[VOCODER_BANDS];
-	Iir::Butterworth::BandPass<2> car_filters[VOCODER_BANDS];
+	Iir::Butterworth::BandPass<4> mod_filters[VOCODER_BANDS];
+	Iir::Butterworth::BandPass<4> car_filters[VOCODER_BANDS];
 	float envelope_follow[VOCODER_BANDS];
 
-	float amp = 1.0;
+	float mod_ef = 0.0;
+	float sum_ef = 0.0;
 };
 
 float
@@ -41,15 +42,17 @@ vc_process(vocoder *v, float mod, float car) {
 		
 	}
 
-	float amp_target = 1.0;
-	if(sum > 0) {
-		amp_target = mod / sum;
-		if(amp_target > 100000.0) amp_target = 100000.0;
+	v->mod_ef += (fabsf(mod) - v->mod_ef) * 0.0008;
+	v->sum_ef += (fabsf(sum) - v->sum_ef) * 0.0008;
+
+	/* should be < 1 */
+	float amp = v->mod_ef;
+
+	if(v->sum_ef != 0.0) {
+		amp = v->mod_ef / v->sum_ef;
 	}
 
-	v->amp += (amp_target - v->amp) * 0.004;
-
-	return sum * v->amp;
+	return sum * amp;
 }
 
 vocoder*
