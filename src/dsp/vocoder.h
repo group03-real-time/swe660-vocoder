@@ -21,7 +21,7 @@ extern "C" {
 typedef struct vocoder vocoder;
 
 vocoder *vc_new();
-float vc_process(vocoder *v, float modulator, float carrier);
+dsp_num vc_process(vocoder *v, dsp_num modulator, dsp_num carrier);
 
 #ifdef __cplusplus
 

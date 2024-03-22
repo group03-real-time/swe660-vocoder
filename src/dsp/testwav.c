@@ -116,7 +116,7 @@ int main(int argc, char **argv) {
 		float m = (mi < mod_frames) ? modulator[mi] : 0.0;
 		float c = (ci < car_frames) ? carrier[ci] : 0.0;
 
-		float o = vc_process(voc, m, c);
+		float o = dsp_to_float(vc_process(voc, m, c));
 		out[i] = o;
 
 		for(int j = 0; j < VOCODER_BANDS; ++j) {

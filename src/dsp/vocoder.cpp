@@ -98,56 +98,59 @@ vc_new() {
 struct vocoder {
 	cascaded_biquad mod_filters[VOCODER_BANDS];
 	cascaded_biquad car_filters[VOCODER_BANDS];
-	float envelope_follow[VOCODER_BANDS];
+	dsp_num envelope_follow[VOCODER_BANDS];
 
-	float mod_x[3];
-	float car_x[3];
+	dsp_num mod_x[3];
+	dsp_num car_x[3];
 
-	float mod_ef;
-	float sum_ef;
+	dsp_num mod_ef;
+	dsp_num sum_ef;
 };
 
-float
-vc_process(vocoder *v, float mod, float car) {
+dsp_num
+vc_process(vocoder *v, dsp_num mod, dsp_num car) {
 	/* TODO: Optimization:
 	 * We should only update the x array once for each entire set of bands.
 	 * This should save about half of the copying time. */
 
-	memmove(v->mod_x + 1, v->mod_x, sizeof(float) * 2);
-	memmove(v->car_x + 1, v->car_x, sizeof(float) * 2);
+	const dsp_num lerp_factor_ef    = dsp_from_double(0.008);
+	const dsp_num lerp_factor_bigef = dsp_from_double(0.0008);
+
+	memmove(v->mod_x + 1, v->mod_x, sizeof(dsp_num) * 2);
+	memmove(v->car_x + 1, v->car_x, sizeof(dsp_num) * 2);
 	v->mod_x[0] = mod;
 	v->car_x[0] = car;
 
-	float sum = 0.0;
+	dsp_num sum = dsp_zero;
 
 	for(int i = 0; i < VOCODER_BANDS; ++i) {
-		float m = cbiquad_update(&v->mod_filters[i], v->mod_x);//v->mod_filters[i].filter<float>(mod);
+		dsp_num m = cbiquad_update(&v->mod_filters[i], v->mod_x);//v->mod_filters[i].filter<float>(mod);
 		/* First, update the eq band for measuring modulator amplitude */
 		//eq_update(&v->mod_filters[i], mod);
 
 		/* Then, update the envelope follower. We basically low-pass-filter
 		 * the absolute value of the signal. */
-		float ef = fabsf(m);
-		v->envelope_follow[i] += (ef - v->envelope_follow[i]) * 0.008;
+		dsp_num ef = dsp_abs(m);
+		v->envelope_follow[i] += dsp_mul((ef - v->envelope_follow[i]), lerp_factor_ef);
 
 		/* Finally, update each of the carrier filters, and multiply them
 		 * by the ef value. */
 		//eq_update(&v->carrier_filters[i], car);
-		float c = cbiquad_update(&v->car_filters[i], v->car_x);
+		dsp_num c = cbiquad_update(&v->car_filters[i], v->car_x);
 
-		sum += c * v->envelope_follow[i];
+		sum += dsp_mul(c, v->envelope_follow[i]);
 
 		
 	}
 
-	v->mod_ef += (fabsf(mod) - v->mod_ef) * 0.0008;
-	v->sum_ef += (fabsf(sum) - v->sum_ef) * 0.0008;
+	v->mod_ef += dsp_mul((dsp_abs(mod) - v->mod_ef), lerp_factor_bigef);
+	v->sum_ef += dsp_mul((dsp_abs(sum) - v->sum_ef), lerp_factor_bigef);
 
 	/* should be < 1 */
-	float amp = v->mod_ef;
+	dsp_num amp = v->mod_ef;
 
-	if(v->sum_ef != 0.0) {
-		amp = v->mod_ef / v->sum_ef;
+	if(v->sum_ef != 0) {
+		amp = dsp_div(v->mod_ef, v->sum_ef);
 	}
 
 	return sum * amp;

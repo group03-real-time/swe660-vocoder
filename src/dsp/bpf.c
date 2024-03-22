@@ -8,7 +8,7 @@
 
 /* Output can be read out of eq->y[0] */
 void 
-biquad_update(biquad *bq, float *x, float *y) {
+biquad_update(biquad *bq, dsp_num *x, dsp_num *y) {
 	/* Each biquad will update the corresponding y array. WE assume x was already
 	 * updated. */
 	//memmove(eq->x + 1, eq->x, sizeof(*eq->x) * 2);
@@ -19,17 +19,29 @@ biquad_update(biquad *bq, float *x, float *y) {
 	/* Finally, compute y[0] */
 	/* TODO: Note: b1 is zero for bpf, which is the only filter type we're using.
 	 * So, just don't include it in the equation, for speed. */
-	y[0] = bq->b0 * x[0] + bq->b1 * x[1] + bq->b2 * x[2]
-				         - bq->a1 * y[1] - bq->a2 * y[2];
 
-	if(fabs(y[0]) < 1.175494350822287508e-38) {
+
+	/* Optimization: According to some analysis, it appears that b0 and b2 are always one.
+	 * So simply remove the multiplication. */
+	//y[0] = /*bq->b0 **/ x[0] + bq->b1 * x[1] + /*bq->b2 * */x[2]
+	//			         - bq->a1 * y[1] - bq->a2 * y[2];
+	y[0] = dsp_mul(bq->b0, x[0])
+	     + dsp_mul(bq->b1, x[1])
+		 + dsp_mul(bq->b2, x[2])
+		 - dsp_mul(bq->a1, y[1])
+		 - dsp_mul(bq->a2, y[2]);
+
+#ifdef DSP_FLOAT
+	/* Flush denormalized values for 11x speed improvement on x86 */
+	if(dsp_abs(y[0]) < 1.175494350822287508e-38) {
 		y[0] = 0.0;
 	}
+#endif
 }
 
 /* Assume x was already updated */
 float
-cbiquad_update(cascaded_biquad *bq, float *x) {
+cbiquad_update(cascaded_biquad *bq, dsp_num *x) {
 	biquad_update(&bq->biquads[0], x, bq->y_array[0]);
 	for(int i = 1; i < NUM_STAGES; ++i) {
 		biquad_update(&bq->biquads[i],
@@ -195,6 +207,8 @@ void bq_set_coefficients(biquad *bq, double a0, double a1, double a2, double b0,
 	bq->b0 = b0 / a0;
 	bq->b1 = b1 / a0;
 	bq->b2 = b2 / a0;
+
+	//printf("coefficients [a1 a2 b0 b1 b2] = %f\t%f\t%f\t%f\t%f\n", bq->a1, bq->a2, bq->b0, bq->b1, bq->b2);
 }
 
 void bq_from_pzp(biquad *bq, pole_zero_pair *pzp) {
