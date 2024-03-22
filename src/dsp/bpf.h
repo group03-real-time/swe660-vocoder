@@ -9,9 +9,14 @@ extern "C" {
 
 typedef struct {
 	/* All coefficients normalized by a0 */
-	dsp_num b0;
-	dsp_num b1;
-	dsp_num b2;
+	//dsp_num b0;
+	//dsp_num b1;
+	//dsp_num b2;
+
+	/* NOte: b1 is either -2 or 2, and in fact, this is just a matter of whether
+	 * the biquad is at at even index or odd index. (even index = positive 2, 
+	 * odd index = -2.) So instead of storing that, we just use two functions, 
+	 * and hope the compiler figures out the best thing to do. */
 
 	dsp_num a1;
 	dsp_num a2;

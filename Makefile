@@ -112,7 +112,7 @@ DEFS_$(1)?=
 # - The standard CFLAGS we configured in CFLAGS_DEFAULT
 # - A -D<Macro> flag for every macro defined in the DEFS variable.
 CFLAGS_$(1):=$$(CFLAGS_$(1)) $$(CFLAGS) $$(CFLAGS_DEFAULT) $$(DEFS_$(1):%=-D%) -DTARGET_NAME='"$(TARGET)"'
-CPPFLAGS_$(1):=$$(CPPFLAGS_$(1)) -O2 -g $$(DEFS_$(1):%=-D%) -DTARGET_NAME='"$(TARGET)"'
+CPPFLAGS_$(1):=$$(CPPFLAGS_$(1)) -O3 -g $$(DEFS_$(1):%=-D%) -DTARGET_NAME='"$(TARGET)"'
 LDFLAGS_$(1):=$$(LDFLAGS) $$(LDFLAGS_DEFAULT)
 
 # The build directories are the directories we need to exist for our compiled

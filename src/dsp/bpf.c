@@ -14,7 +14,7 @@ typedef struct {
 
 /* Output can be read out of eq->y[0] */
 void 
-biquad_update(biquad *bq, dsp_num *x, dsp_num *y) {
+biquad_update_even(biquad *bq, dsp_num *x, dsp_num *y) {
 	/* Each biquad will update the corresponding y array. WE assume x was already
 	 * updated. */
 	//memmove(eq->x + 1, eq->x, sizeof(*eq->x) * 2);
@@ -32,7 +32,7 @@ biquad_update(biquad *bq, dsp_num *x, dsp_num *y) {
 	//y[0] = /*bq->b0 **/ x[0] + bq->b1 * x[1] + /*bq->b2 * */x[2]
 	//			         - bq->a1 * y[1] - bq->a2 * y[2];
 	y[0] = x[0]
-	     + dsp_mul(bq->b1, x[1])
+	     + (x[1] << 1) /* even index: b1 = 2 */
 		 + x[2]
 		 - dsp_mul(bq->a1, y[1])
 		 - dsp_mul(bq->a2, y[2]);
@@ -46,7 +46,39 @@ biquad_update(biquad *bq, dsp_num *x, dsp_num *y) {
 }
 
 void 
-biquad_update_scaled(biquad *bq, dsp_num *x, dsp_num *y, dsp_num scale) {
+biquad_update_odd(biquad *bq, dsp_num *x, dsp_num *y) {
+	/* Each biquad will update the corresponding y array. WE assume x was already
+	 * updated. */
+	//memmove(eq->x + 1, eq->x, sizeof(*eq->x) * 2);
+	memmove(y + 1, y, sizeof(*y) * 2);
+
+	/* Assume that x[0] is the new sample */
+
+	/* Finally, compute y[0] */
+	/* TODO: Note: b1 is zero for bpf, which is the only filter type we're using.
+	 * So, just don't include it in the equation, for speed. */
+
+
+	/* Optimization: According to some analysis, it appears that b0 and b2 are always one.
+	 * So simply remove the multiplication. */
+	//y[0] = /*bq->b0 **/ x[0] + bq->b1 * x[1] + /*bq->b2 * */x[2]
+	//			         - bq->a1 * y[1] - bq->a2 * y[2];
+	y[0] = x[0]
+	     - (x[1] << 1) /* odd index: b1 = -2 */
+		 + x[2]
+		 - dsp_mul(bq->a1, y[1])
+		 - dsp_mul(bq->a2, y[2]);
+
+#ifdef DSP_FLOAT
+	/* Flush denormalized values for 11x speed improvement on x86 */
+	if(dsp_abs(y[0]) < 1.175494350822287508e-38) {
+		y[0] = 0.0;
+	}
+#endif
+}
+
+void 
+biquad_update_scaled_even(biquad *bq, dsp_num *x, dsp_num *y, dsp_num scale) {
 	/* Each biquad will update the corresponding y array. WE assume x was already
 	 * updated. */
 	//memmove(eq->x + 1, eq->x, sizeof(*eq->x) * 2);
@@ -62,7 +94,7 @@ biquad_update_scaled(biquad *bq, dsp_num *x, dsp_num *y, dsp_num scale) {
 	/* Optimization: According to some analysis, it appears that b0 and b2 are always one.
 	 * So simply remove the multiplication. */
 	y[0] = dsp_mul(x[0], scale)
-	     + dsp_mul(dsp_mul(bq->b1, x[1]), scale)
+	     + dsp_mul(x[1] << 1, scale) /* even index: b1 = 2 */
 		 + dsp_mul(x[2], scale)
 		 - dsp_mul(bq->a1, y[1])
 		 - dsp_mul(bq->a2, y[2]);
@@ -83,11 +115,20 @@ biquad_update_scaled(biquad *bq, dsp_num *x, dsp_num *y, dsp_num scale) {
 /* Assume x was already updated */
 float
 cbiquad_update(cascaded_biquad *bq, dsp_num *x) {
-	biquad_update_scaled(&bq->biquads[0], x, bq->y_array[0], bq->scale);
-	for(int i = 1; i < NUM_STAGES; ++i) {
-		biquad_update(&bq->biquads[i],
+	biquad_update_scaled_even(&bq->biquads[0], x, bq->y_array[0], bq->scale);
+
+	/* Note: NUM_STAGES must be at least 2 */
+	biquad_update_odd(&bq->biquads[1],
+			bq->y_array[0],
+			bq->y_array[1]);
+
+	for(int i = 2; i < NUM_STAGES; i += 2) {
+		biquad_update_even(&bq->biquads[i],
 			bq->y_array[i - 1],
 			bq->y_array[i]);
+		biquad_update_odd(&bq->biquads[i + 1],
+			bq->y_array[i + 1 - 1],
+			bq->y_array[i + 1]);
 	}
 	return bq->y_array[NUM_STAGES - 1][0];
 }
@@ -337,9 +378,9 @@ void cbq_apply_scale(double_biquad *bq, double scale) {
 void bq_from_dbq(biquad *bq, double_biquad *dbq) {
 	bq->a1 = dsp_from_double(dbq->a1);
 	bq->a2 = dsp_from_double(dbq->a2);
-	bq->b0 = dsp_from_double(dbq->b0);
-	bq->b1 = dsp_from_double(dbq->b1);
-	bq->b2 = dsp_from_double(dbq->b2);
+	//bq->b0 = dsp_from_double(dbq->b0);
+	//bq->b1 = dsp_from_double(dbq->b1);
+	//bq->b2 = dsp_from_double(dbq->b2);
 
 	//printf("coefficients [a1 a2 b0 b1 b2] = %f\t%f\t%f\t%f\t%f\n", dsp_to_float(bq->a1), dsp_to_float(bq->a2), dsp_to_float(bq->b0), dsp_to_float(bq->b1), dsp_to_float(bq->b2));
 }
