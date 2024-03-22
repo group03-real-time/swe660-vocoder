@@ -21,6 +21,10 @@ biquad_update(biquad *bq, float *x, float *y) {
 	 * So, just don't include it in the equation, for speed. */
 	y[0] = bq->b0 * x[0] + bq->b1 * x[1] + bq->b2 * x[2]
 				         - bq->a1 * y[1] - bq->a2 * y[2];
+
+	if(fabs(y[0]) < 1.175494350822287508e-38) {
+		y[0] = 0.0;
+	}
 }
 
 /* Assume x was already updated */
