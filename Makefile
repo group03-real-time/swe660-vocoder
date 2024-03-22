@@ -14,8 +14,10 @@ SRCS=\
 	app.c\
 	gpio_pins.c\
 	good_user_input.c\
+	main.c\
+	menu.c\
+	offline_vocode.c\
 	dsp/bpf.c\
-	dsp/testwav.c\
 	dsp/vocoder.c\
 	wav/wav.c\
 	
@@ -47,7 +49,7 @@ DEFS_dspfloat=DSP_FLOAT
 DEFS_dsp32=DSP_FIXED_32
 
 CC_cross=arm-linux-gnueabihf-gcc
-DEFS_cross=USE_MMAP_GPIO
+DEFS_cross=USE_MMAP_GPIO HARDWARE
 
 IS_CROSS_cross=true
 else
@@ -58,11 +60,6 @@ TARGETS=$(BUILDS:%=$(TARGET)-%)
 # The top-level build rule / PHONY target all -- just corresponds to building
 # the final executable. Used to make it clear where the rules begin.
 all: $(TARGETS)
-
-#testwav: vocoder-default src/dsp/vocoder.cpp src/dsp/testwav.c src/dsp/dsp.h
-#	g++ -c src/dsp/vocoder.cpp -o build-default/vocoder.o -O2 # TODO: Fix this nonsense
-#	gcc -c src/dsp/testwav.c -o build-default/testwav.o -O2
-#	g++ build-default/testwav.o build-default/vocoder.o $(OBJS_default) -o testwav -lm
 
 define RUN_CROSS_template = 
 

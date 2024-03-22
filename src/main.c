@@ -68,7 +68,7 @@ void write_wav_header(FILE *file) {
 }
 
 int
-main(void) {
+main_app(int argc, char **argv) {
 	/* utsname */
 	app_show_utsname();
 

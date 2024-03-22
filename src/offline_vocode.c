@@ -3,16 +3,16 @@
  * Uses the drwav.h library for reading and writing wav files.
 */
 
-#include "vocoder.h"
-#include "../wav/wav.h"
+#include "dsp/vocoder.h"
+#include "wav/wav.h"
 
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
 
-int main(int argc, char **argv) {
+int main_ov(int argc, char **argv) {
 	if(argc < 4) {
-		printf("usage: %s <modulator.wav (voice)> <carrier.wav (synth)> <output.wav>\n", argv[0]);
+		printf("usage: %s -ov <modulator.wav (voice)> <carrier.wav (synth)> <output.wav>\n", argv[0]);
 		return 1;
 	}
 
