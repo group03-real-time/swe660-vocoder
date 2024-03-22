@@ -4,23 +4,7 @@
 #include <math.h>
 #include <complex.h>
 
-typedef struct {
-	/* All coefficients normalized by a0 */
-	float b0;
-	float b1;
-	float b2;
 
-	float a1;
-	float a2;
-} biquad;
-
-/* Note: NUM_STAGES *must* be even */
-#define NUM_STAGES 4
-
-typedef struct {
-	biquad biquads[NUM_STAGES];
-	float  y_array[NUM_STAGES][3];
-} cascaded_biquad;
 
 /* Output can be read out of eq->y[0] */
 void 
@@ -102,6 +86,7 @@ void analog_design(analog_layout *analog) {
 		complex zero = INFINITY;
 
 		analog->poles[i] = POLE_ZERO_PAIR_CONJ(pole, zero);
+		//printf("poles[%d].p1, z1 = %f %f ; %f %f\n", i, creal(analog->poles[i].p1), cimag(analog->poles[i].p1), creal(analog->poles[i].z1), cimag(analog->poles[i].z1));
 	}
 
 	analog->w    = 0.0;
@@ -120,13 +105,16 @@ complex_pair bp_transform_pair(complex c, double b, double a2, double b2, double
 		return COMPLEX_PAIR(-1, 1);
 	
 	c = (1. + c) / (1. - c); // bilinear
+	printf("bilinear c = %f, %f\n", creal(c), cimag(c));
 	
 	complex v = 0;
 	v = addmul (v, 4 * (b2 * (a2 - 1) + 1), c);
 	v += 8 * (b2 * (a2 - 1) - 1);
 	v *= c;
+	printf("v @ times c = %f, %f\n", creal(v), cimag(v));
 	v += 4 * (b2 * (a2 - 1) + 1);
-	v = sqrt(v);
+	v = csqrt(v);
+	printf("v = %f, %f\n", creal(v), cimag(v));
 	
 	complex u = -v;
 	u = addmul (u, ab_2, c);
@@ -173,6 +161,8 @@ void band_pass_transform(analog_layout *analog, digital_layout *digital, double 
 	{
 		complex_pair p1 = bp_transform_pair(analog->poles[i].p1, b, a2, b2, ab_2);
 		complex_pair z1 = bp_transform_pair(analog->poles[i].z1, b, a2, b2, ab_2);
+
+		printf("p1.first = %f %f\n", creal(p1.first), cimag(p1.first));
 
 		digital->poles[i * 2]     = POLE_ZERO_PAIR_CONJ(p1.first, z1.first);
 		digital->poles[i * 2 + 1] = POLE_ZERO_PAIR_CONJ(p1.second, z1.second);

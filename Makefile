@@ -15,8 +15,9 @@ SRCS=\
 	gpio_pins.c\
 	good_user_input.c\
 	dsp/bpf.c\
-	main.c\
-	#dsp/testwav.c\
+	dsp/testwav.c\
+	#main.c\
+	dsp/testwav.c\
 
 SRC_CPP=\
 	dsp/vocoder.cpp
@@ -111,6 +112,7 @@ DEFS_$(1)?=
 # - The standard CFLAGS we configured in CFLAGS_DEFAULT
 # - A -D<Macro> flag for every macro defined in the DEFS variable.
 CFLAGS_$(1):=$$(CFLAGS_$(1)) $$(CFLAGS) $$(CFLAGS_DEFAULT) $$(DEFS_$(1):%=-D%) -DTARGET_NAME='"$(TARGET)"'
+CPPFLAGS_$(1):=$$(CPPFLAGS_$(1)) -O2 $$(DEFS_$(1):%=-D%) -DTARGET_NAME='"$(TARGET)"'
 LDFLAGS_$(1):=$$(LDFLAGS) $$(LDFLAGS_DEFAULT)
 
 # The build directories are the directories we need to exist for our compiled
@@ -158,10 +160,10 @@ $$(BUILD_ROOT_$(1))/%.c.o: src/%.c | $$(BUILD_DIRECTORIES_$(1))
 	$$(CC_$(1)) -MMD -c $$< -o $$@ $$(CFLAGS_$(1))
 
 $$(BUILD_ROOT_$(1))/%.cpp.o: src/%.cpp | $$(BUILD_DIRECTORIES_$(1))
-	$$(CC_$(1)) -x c++ -MMD -c $$< -o $$@
+	$$(CC_$(1)) -x c++ -MMD -c $$< -o $$@ $$(CPPFLAGS_$(1))
 
 $$(BUILD_ROOT_$(1))/iir/%.cpp.o: iir1/iir/%.cpp | $$(BUILD_DIRECTORIES_$(1))
-	$$(CC_$(1)) -x c++ -MMD -c $$< -o $$@ -O2
+	$$(CC_$(1)) -x c++ -MMD -c $$< -o $$@ $$(CPPFLAGS_$(1))
 
 cc-cmd-$(1):
 	@echo $$(CC_$(1)) "src/*.c" -o $$(TARGET_$(1)) $$(CFLAGS_$(1)) $$(LDFLAGS_$(1))
