@@ -31,9 +31,9 @@ biquad_update(biquad *bq, dsp_num *x, dsp_num *y) {
 	 * So simply remove the multiplication. */
 	//y[0] = /*bq->b0 **/ x[0] + bq->b1 * x[1] + /*bq->b2 * */x[2]
 	//			         - bq->a1 * y[1] - bq->a2 * y[2];
-	y[0] = dsp_mul(bq->b0, x[0])
+	y[0] = x[0]
 	     + dsp_mul(bq->b1, x[1])
-		 + dsp_mul(bq->b2, x[2])
+		 + x[2]
 		 - dsp_mul(bq->a1, y[1])
 		 - dsp_mul(bq->a2, y[2]);
 
@@ -61,13 +61,16 @@ biquad_update_scaled(biquad *bq, dsp_num *x, dsp_num *y, dsp_num scale) {
 
 	/* Optimization: According to some analysis, it appears that b0 and b2 are always one.
 	 * So simply remove the multiplication. */
-	//y[0] = /*bq->b0 **/ x[0] + bq->b1 * x[1] + /*bq->b2 * */x[2]
-	//			         - bq->a1 * y[1] - bq->a2 * y[2];
-	y[0] = dsp_mul(dsp_mul(bq->b0, x[0]), scale)
+	y[0] = dsp_mul(x[0], scale)
+	     + dsp_mul(dsp_mul(bq->b1, x[1]), scale)
+		 + dsp_mul(x[2], scale)
+		 - dsp_mul(bq->a1, y[1])
+		 - dsp_mul(bq->a2, y[2]);
+	/*y[0] = dsp_mul(dsp_mul(bq->b0, x[0]), scale)
 	     + dsp_mul(dsp_mul(bq->b1, x[1]), scale)
 		 + dsp_mul(dsp_mul(bq->b2, x[2]), scale)
 		 - dsp_mul(bq->a1, y[1])
-		 - dsp_mul(bq->a2, y[2]);
+		 - dsp_mul(bq->a2, y[2]);*/
 
 #ifdef DSP_FLOAT
 	/* Flush denormalized values for 11x speed improvement on x86 */
@@ -246,7 +249,7 @@ void bq_set_coefficients(double_biquad *bq, double a0, double a1, double a2, dou
 	bq->b1 = b1 / a0;
 	bq->b2 = b2 / a0;
 
-	printf("coefficients [a1 a2 b0 b1 b2] = %f\t%f\t%f\t%f\t%f\n", bq->a1, bq->a2, bq->b0, bq->b1, bq->b2);
+	//printf("coefficients [a1 a2 b0 b1 b2] = %f\t%f\t%f\t%f\t%f\n", bq->a1, bq->a2, bq->b0, bq->b1, bq->b2);
 }
 
 void bq_from_pzp(double_biquad *bq, pole_zero_pair *pzp) {
@@ -338,7 +341,7 @@ void bq_from_dbq(biquad *bq, double_biquad *dbq) {
 	bq->b1 = dsp_from_double(dbq->b1);
 	bq->b2 = dsp_from_double(dbq->b2);
 
-	printf("coefficients [a1 a2 b0 b1 b2] = %f\t%f\t%f\t%f\t%f\n", dsp_to_float(bq->a1), dsp_to_float(bq->a2), dsp_to_float(bq->b0), dsp_to_float(bq->b1), dsp_to_float(bq->b2));
+	//printf("coefficients [a1 a2 b0 b1 b2] = %f\t%f\t%f\t%f\t%f\n", dsp_to_float(bq->a1), dsp_to_float(bq->a2), dsp_to_float(bq->b0), dsp_to_float(bq->b1), dsp_to_float(bq->b2));
 }
 
 void design_bpf(cascaded_biquad *cbq, double fc, double fw) {

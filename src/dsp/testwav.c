@@ -93,8 +93,9 @@ int main(int argc, char **argv) {
 	drwav_uint64 out_frames = (mod_frames > car_frames) ? mod_frames : car_frames;
 	unsigned int out_sr = SAMPLE_RATE;
 
-#define ARR calloc(out_frames * out_channels, sizeof(*out))
 	float *out = calloc(out_frames * out_channels, sizeof(*out));
+/*#define ARR calloc(out_frames * out_channels, sizeof(*out))
+	
 
 	float *mbpf_test[VOCODER_BANDS];
 	float *e_test[VOCODER_BANDS];
@@ -104,13 +105,16 @@ int main(int argc, char **argv) {
 		e_test[i] = ARR;
 		cbpf_test[i] = ARR;
 	}
-
+*/
 	/* Initialize the vocoder */
 	//vocoder voc;
 	vocoder *voc = vc_new();
 
 	int mi = 0;
 	int ci = 0;
+
+	dsp_num mtest = 0;
+	dsp_num ctest = 0;
 
 	for(int i = 0; i < out_frames; ++i) {
 		float mf = (mi < mod_frames) ? modulator[mi] : 0.0;
@@ -140,16 +144,6 @@ int main(int argc, char **argv) {
 	}
 
 #define WRITE(arr, fp) write_output(fp, arr, out_channels, out_frames, out_sr)
-
+write:
 	WRITE(out, out_fp);
-
-	for(int i = 0; i < VOCODER_BANDS; ++i) {
-		char buf[64] = {0};
-		//sprintf(buf, "mbpf_%d.wav", i);
-		//WRITE(mbpf_test[i], buf);
-		//printf(buf, "env_%d.wav", i);
-		//WRITE(e_test[i], buf);
-		//sprintf(buf, "cbpf_%d.wav", i);
-		//WRITE(cbpf_test[i], buf);
-	}
 }
