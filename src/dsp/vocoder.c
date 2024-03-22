@@ -3,7 +3,10 @@
 #include <math.h>
 #include <string.h>
 
-
+/* We include the actual implementation code for the BPF filters in our vocoder
+ * c file. This is to give the compiler the ability to inline more code and
+ * optimize more. Results in a ~12% speedup. */
+#include "bpf_impl.c"
 
 dsp_num
 vc_process(vocoder *v, dsp_num mod, dsp_num car) {
@@ -19,7 +22,7 @@ vc_process(vocoder *v, dsp_num mod, dsp_num car) {
 	dsp_largenum suml = dsp_zero;
 
 	for(int i = 0; i < VOCODER_BANDS; ++i) {
-		dsp_num m = cbiquad_update(&v->mod_filters[i], v->mod_x);
+		dsp_num m = bpf_cbq_update(&v->mod_filters[i], v->mod_x);
 		/* First, update the eq band for measuring modulator amplitude */
 
 		/* Then, update the envelope follower. We basically low-pass-filter
@@ -29,7 +32,7 @@ vc_process(vocoder *v, dsp_num mod, dsp_num car) {
 
 		/* Finally, update each of the carrier filters, and multiply them
 		 * by the ef value. */
-		dsp_num c = cbiquad_update(&v->car_filters[i], v->car_x);
+		dsp_num c = bpf_cbq_update(&v->car_filters[i], v->car_x);
 
 		suml += dsp_mul_large(c, v->envelope_follow[i]);
 	}

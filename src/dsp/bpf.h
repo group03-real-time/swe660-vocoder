@@ -31,7 +31,6 @@ typedef struct {
 	dsp_num    scale;
 } bpf_cascaded_biquad;
 
-float cbiquad_update(bpf_cascaded_biquad *bq, dsp_num *x);
 void design_bpf(bpf_cascaded_biquad *cbq, double fc, double fw);
 
 #endif
