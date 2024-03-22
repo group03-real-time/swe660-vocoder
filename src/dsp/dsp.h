@@ -4,7 +4,7 @@
 #ifndef SAMPLE_RATE
 	#define SAMPLE_RATE 44100
 #endif
-#define VOCODER_BANDS 8
+#define VOCODER_BANDS 16
 
 #ifdef DSP_FLOAT
 
