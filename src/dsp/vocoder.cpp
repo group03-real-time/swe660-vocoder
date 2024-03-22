@@ -3,6 +3,8 @@
 #include <math.h>
 #include <string.h>
 
+#include <cstdio>
+
 #ifdef USE_IIR1
 
 #include "../../iir1/iir/Butterworth.h"
@@ -125,6 +127,7 @@ vc_process(vocoder *v, dsp_num mod, dsp_num car) {
 
 	for(int i = 0; i < VOCODER_BANDS; ++i) {
 		dsp_num m = cbiquad_update(&v->mod_filters[i], v->mod_x);//v->mod_filters[i].filter<float>(mod);
+		//printf("m = %d\n", m);
 		/* First, update the eq band for measuring modulator amplitude */
 		//eq_update(&v->mod_filters[i], mod);
 
@@ -153,7 +156,10 @@ vc_process(vocoder *v, dsp_num mod, dsp_num car) {
 		amp = dsp_div(v->mod_ef, v->sum_ef);
 	}
 
-	return sum * amp;
+	//printf("mod_ef, sum_ef = %d %d\n", v->mod_ef, v->sum_ef);
+	//printf("amp = %d\n", amp);
+
+	return dsp_mul(sum, amp);
 }
 
 vocoder*

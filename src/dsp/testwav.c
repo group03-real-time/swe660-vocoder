@@ -113,8 +113,13 @@ int main(int argc, char **argv) {
 	int ci = 0;
 
 	for(int i = 0; i < out_frames; ++i) {
-		float m = (mi < mod_frames) ? modulator[mi] : 0.0;
-		float c = (ci < car_frames) ? carrier[ci] : 0.0;
+		float mf = (mi < mod_frames) ? modulator[mi] : 0.0;
+		float cf = (ci < car_frames) ? carrier[ci] : 0.0;
+
+		dsp_num m = dsp_from_double(mf);
+		dsp_num c = dsp_from_double(cf);
+
+		//printf("input samples = %d\t%d\n", m, c);
 
 		float o = dsp_to_float(vc_process(voc, m, c));
 		out[i] = o;

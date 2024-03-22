@@ -202,11 +202,11 @@ double norm(complex c) {
 }
 
 void bq_set_coefficients(biquad *bq, double a0, double a1, double a2, double b0, double b1, double b2) {
-	bq->a1 = a1 / a0;
-	bq->a2 = a2 / a0;
-	bq->b0 = b0 / a0;
-	bq->b1 = b1 / a0;
-	bq->b2 = b2 / a0;
+	bq->a1 = dsp_from_double(a1 / a0);
+	bq->a2 = dsp_from_double(a2 / a0);
+	bq->b0 = dsp_from_double(b0 / a0);
+	bq->b1 = dsp_from_double(b1 / a0);
+	bq->b2 = dsp_from_double(b2 / a0);
 
 	//printf("coefficients [a1 a2 b0 b1 b2] = %f\t%f\t%f\t%f\t%f\n", bq->a1, bq->a2, bq->b0, bq->b1, bq->b2);
 }

@@ -67,7 +67,7 @@ dsp_mul(dsp_num a, dsp_num b) {
 
 static inline dsp_num
 dsp_div(dsp_num a, dsp_num b) {
-	const int64_t a64 = (a << DSP_POINT_IDX);
+	const int64_t a64 = ((int64_t)a << DSP_POINT_IDX);
 	const int64_t b64 = b;
 	const int64_t res = a64 / b64;
 	return (dsp_num)res;
