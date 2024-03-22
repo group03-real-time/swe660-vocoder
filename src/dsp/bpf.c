@@ -12,31 +12,39 @@ typedef struct {
 	double b2;
 } double_biquad;
 
-/* Output can be read out of eq->y[0] */
+/* We provide three biquad update functions: even, odd, and scaled_even.
+ * 
+ * This is because the b0, b1, and b2 coefficients always take particular forms
+ * for the bandpass.
+ * 
+ * The b0 and b2 coefficients are always 1, so we simply don't multiply them in.
+ * (and don't store them).
+ * 
+ * The b1 coefficient is either 2 (for even indices) or -2 (for odd indices).
+ * So, we simply provide two versions of the function, one for even and one
+ * for odd, that perform either the x2 or the x-2.
+ * 
+ * Finally, the first filter in the chain is supposed to have its b coefficients
+ * scaled by some value. This scaling is better to apply separately in the fixed
+ * point math for more precision, and also only needs to be applied once, so
+ * again we provide another function.
+ * 
+ * Besides performing a Direct Form I update, each of these functions also copies
+ * the old Y values over. We assume the X values were copied previously.
+ * 
+ * Finally, we also provide an input_gain to be multiplied to the x array. This
+ * gain value should not be a fixed point number--it should be a direct multiplication
+ * for speed (ideally a power of two).
+*/
 static inline void 
-biquad_update_even(biquad *bq, dsp_num *x, dsp_num *y, int input_gain) {
-	/* Each biquad will update the corresponding y array. WE assume x was already
-	 * updated. */
-	//memmove(eq->x + 1, eq->x, sizeof(*eq->x) * 2);
+biquad_update_even(bpf_biquad *bq, dsp_num *x, dsp_num *y, int input_gain) {
 	memmove(y + 1, y, sizeof(*y) * 2);
 
-	/* Assume that x[0] is the new sample */
-
-	/* Finally, compute y[0] */
-	/* TODO: Note: b1 is zero for bpf, which is the only filter type we're using.
-	 * So, just don't include it in the equation, for speed. */
-
-
-	/* Optimization: According to some analysis, it appears that b0 and b2 are always one.
-	 * So simply remove the multiplication. */
-	//y[0] = /*bq->b0 **/ x[0] + bq->b1 * x[1] + /*bq->b2 * */x[2]
-	//			         - bq->a1 * y[1] - bq->a2 * y[2];
 	y[0] = (x[0] * input_gain)
 	     + ((x[1] * input_gain) << 1) /* even index: b1 = 2 */
 		 + (x[2] * input_gain)
 		 - dsp_mul(bq->a1, y[1])
 		 - dsp_mul(bq->a2, y[2]);
-	//y[0] *= PER_STAGE_BOOST;
 
 #ifdef DSP_FLOAT
 	/* Flush denormalized values for 11x speed improvement on x86 */
@@ -47,29 +55,14 @@ biquad_update_even(biquad *bq, dsp_num *x, dsp_num *y, int input_gain) {
 }
 
 static inline void 
-biquad_update_odd(biquad *bq, dsp_num *x, dsp_num *y, int input_gain) {
-	/* Each biquad will update the corresponding y array. WE assume x was already
-	 * updated. */
-	//memmove(eq->x + 1, eq->x, sizeof(*eq->x) * 2);
+biquad_update_odd(bpf_biquad *bq, dsp_num *x, dsp_num *y, int input_gain) {
 	memmove(y + 1, y, sizeof(*y) * 2);
 
-	/* Assume that x[0] is the new sample */
-
-	/* Finally, compute y[0] */
-	/* TODO: Note: b1 is zero for bpf, which is the only filter type we're using.
-	 * So, just don't include it in the equation, for speed. */
-
-
-	/* Optimization: According to some analysis, it appears that b0 and b2 are always one.
-	 * So simply remove the multiplication. */
-	//y[0] = /*bq->b0 **/ x[0] + bq->b1 * x[1] + /*bq->b2 * */x[2]
-	//			         - bq->a1 * y[1] - bq->a2 * y[2];
 	y[0] = (x[0] * input_gain)
 	     - ((x[1] * input_gain) << 1) /* odd index: b1 = -2 */
 		 + (x[2] * input_gain)
 		 - dsp_mul(bq->a1, y[1])
 		 - dsp_mul(bq->a2, y[2]);
-	//y[0] *= PER_STAGE_BOOST;
 
 #ifdef DSP_FLOAT
 	/* Flush denormalized values for 11x speed improvement on x86 */
@@ -80,32 +73,14 @@ biquad_update_odd(biquad *bq, dsp_num *x, dsp_num *y, int input_gain) {
 }
 
 void 
-biquad_update_scaled_even(biquad *bq, dsp_num *x, dsp_num *y, dsp_num scale) {
-	/* Each biquad will update the corresponding y array. WE assume x was already
-	 * updated. */
-	//memmove(eq->x + 1, eq->x, sizeof(*eq->x) * 2);
+biquad_update_scaled_even(bpf_biquad *bq, dsp_num *x, dsp_num *y, dsp_num scale) {
 	memmove(y + 1, y, sizeof(*y) * 2);
 
-	/* Assume that x[0] is the new sample */
-
-	/* Finally, compute y[0] */
-	/* TODO: Note: b1 is zero for bpf, which is the only filter type we're using.
-	 * So, just don't include it in the equation, for speed. */
-
-
-	/* Optimization: According to some analysis, it appears that b0 and b2 are always one.
-	 * So simply remove the multiplication. */
 	y[0] = dsp_mul(x[0], scale)
 	     + dsp_mul(x[1] << 1, scale) /* even index: b1 = 2 */
 		 + dsp_mul(x[2], scale)
 		 - dsp_mul(bq->a1, y[1])
 		 - dsp_mul(bq->a2, y[2]);
-	//y[0] *= PER_STAGE_BOOST;
-	/*y[0] = dsp_mul(dsp_mul(bq->b0, x[0]), scale)
-	     + dsp_mul(dsp_mul(bq->b1, x[1]), scale)
-		 + dsp_mul(dsp_mul(bq->b2, x[2]), scale)
-		 - dsp_mul(bq->a1, y[1])
-		 - dsp_mul(bq->a2, y[2]);*/
 
 #ifdef DSP_FLOAT
 	/* Flush denormalized values for 11x speed improvement on x86 */
@@ -121,7 +96,8 @@ static const int input_gains[] = {
 
 /* Assume x was already updated */
 float
-cbiquad_update(cascaded_biquad *bq, dsp_num *x) {
+cbiquad_update(bpf_cascaded_biquad *bq, dsp_num *x) {
+	/* First biquad in the chain is scaled. */
 	biquad_update_scaled_even(&bq->biquads[0], x, bq->y_array[0], bq->scale);
 
 	/* Note: NUM_STAGES must be at least 2 */
@@ -129,6 +105,7 @@ cbiquad_update(cascaded_biquad *bq, dsp_num *x) {
 			bq->y_array[0],
 			bq->y_array[1], input_gains[1]);
 
+	/* Update the rest of the stages using the normal update functions. */
 	for(int i = 2; i < NUM_STAGES; i += 2) {
 		biquad_update_even(&bq->biquads[i],
 			bq->y_array[i - 1],
@@ -138,16 +115,22 @@ cbiquad_update(cascaded_biquad *bq, dsp_num *x) {
 			bq->y_array[i + 1], input_gains[i + 1]);
 	}
 	
-	dsp_num res = bq->y_array[NUM_STAGES - 1][0];
-	//for(int i = 0; i < NUM_STAGES; ++i) {
-	//	res /= input_gains[i];
-	//}
-
-	//if(res != p) {
-		//printf("match: %d vs %d\n",res, p);
-	//}
-	return res;
+	/* The result is in the last stage y[0]. */
+	return bq->y_array[NUM_STAGES - 1][0];
 }
+
+/**
+ * Important note:
+ * The code for doing the filter design for the Butterworth bandpass filter is
+ * ported directly from https://github.com/berndporr/iir1. Our implementation
+ * speeds up the actual DSP from this library by a factor of 1.5x on x86.
+ * 
+ * The filter design code is largely unchanged, besides that it is ported
+ * from C++ to C, and that the scale factor was moved out of the b coefficients
+ * and into a separate value.
+ * 
+ * This library is MIT licensed.
+*/
 
 typedef struct {
 	complex p1;
@@ -219,16 +202,13 @@ complex_pair bp_transform_pair(complex c, double b, double a2, double b2, double
 		return COMPLEX_PAIR(-1, 1);
 	
 	c = (1. + c) / (1. - c); // bilinear
-	//printf("bilinear c = %f, %f\n", creal(c), cimag(c));
 	
 	complex v = 0;
 	v = addmul (v, 4 * (b2 * (a2 - 1) + 1), c);
 	v += 8 * (b2 * (a2 - 1) - 1);
 	v *= c;
-	//printf("v @ times c = %f, %f\n", creal(v), cimag(v));
 	v += 4 * (b2 * (a2 - 1) + 1);
 	v = csqrt(v);
-	//printf("v = %f, %f\n", creal(v), cimag(v));
 	
 	complex u = -v;
 	u = addmul (u, ab_2, c);
@@ -276,16 +256,8 @@ void band_pass_transform(analog_layout *analog, digital_layout *digital, double 
 		complex_pair p1 = bp_transform_pair(analog->poles[i].p1, b, a2, b2, ab_2);
 		complex_pair z1 = bp_transform_pair(analog->poles[i].z1, b, a2, b2, ab_2);
 
-		//printf("p1.first = %f %f\n", creal(p1.first), cimag(p1.first));
-
 		digital->poles[i * 2]     = POLE_ZERO_PAIR_CONJ(p1.first, z1.first);
 		digital->poles[i * 2 + 1] = POLE_ZERO_PAIR_CONJ(p1.second, z1.second);
-		//const PoleZeroPair& pair = analog[i];
-		//ComplexPair p1 = transform (pair.poles.first);
-		//ComplexPair z1 = transform (pair.zeros.first);
-		
-		//digital.addPoleZeroConjugatePairs (p1.first, z1.first);
-		//digital.addPoleZeroConjugatePairs (p1.second, z1.second);
 	}
 	
 	double wn = analog->w;
@@ -305,8 +277,6 @@ void bq_set_coefficients(double_biquad *bq, double a0, double a1, double a2, dou
 	bq->b0 = b0 / a0;
 	bq->b1 = b1 / a0;
 	bq->b2 = b2 / a0;
-
-	//printf("coefficients [a1 a2 b0 b1 b2] = %f\t%f\t%f\t%f\t%f\n", bq->a1, bq->a2, bq->b0, bq->b1, bq->b2);
 }
 
 void bq_from_pzp(double_biquad *bq, pole_zero_pair *pzp) {
@@ -356,7 +326,7 @@ void bq_from_pzp(double_biquad *bq, pole_zero_pair *pzp) {
 
 
 
-complex cbq_response(cascaded_biquad *cbq, double_biquad *dbqs, double normalized_frequency) {
+complex cbq_response(bpf_cascaded_biquad *cbq, double_biquad *dbqs, double normalized_frequency) {
 	//if (normalized_frequency > 0.5) throw_invalid_argument(maxFError);
 	//if (normalized_frequency < 0.0) throw_invalid_argument(minFError);
 	double w = 2 * doublePi * normalized_frequency;
@@ -365,7 +335,6 @@ complex cbq_response(cascaded_biquad *cbq, double_biquad *dbqs, double normalize
 	complex ch = 1.0;
 	complex cbot = 1.0;
 
-	//const Biquad* stage = m_stageArray;
 	for (int i = 0; i < NUM_STAGES; ++i) {
 		double_biquad *bq = &dbqs[i];
 
@@ -384,14 +353,7 @@ complex cbq_response(cascaded_biquad *cbq, double_biquad *dbqs, double normalize
 	return ch / cbot;
 }
 
-void cbq_apply_scale(double_biquad *bq, double scale) {
-	/* Apparently only applies to the first biquad */
-	bq->b0 *= scale;
-	bq->b1 *= scale;
-	bq->b2 *= scale;
-}
-
-void bq_from_dbq(biquad *bq, double_biquad *dbq) {
+void bq_from_dbq(bpf_biquad *bq, double_biquad *dbq) {
 	bq->a1 = dsp_from_double(dbq->a1);
 	bq->a2 = dsp_from_double(dbq->a2);
 	//bq->b0 = dsp_from_double(dbq->b0);
@@ -401,7 +363,7 @@ void bq_from_dbq(biquad *bq, double_biquad *dbq) {
 	//printf("coefficients [a1 a2 b0 b1 b2] = %f\t%f\t%f\t%f\t%f\n", dsp_to_float(bq->a1), dsp_to_float(bq->a2), dsp_to_float(bq->b0), dsp_to_float(bq->b1), dsp_to_float(bq->b2));
 }
 
-void design_bpf(cascaded_biquad *cbq, double fc, double fw) {
+void design_bpf(bpf_cascaded_biquad *cbq, double fc, double fw) {
 	analog_layout analog = {0};
 	digital_layout digital = {0};
 	analog_design(&analog);
@@ -415,9 +377,9 @@ void design_bpf(cascaded_biquad *cbq, double fc, double fw) {
 	}
 
 	double response = sqrt(norm(cbq_response(cbq, d_biquads, digital.w / (2 * doublePi))));
-	//cbq_apply_scale(&d_biquads[0], digital.gain / response);
 
-	/* Scale will be applied separately */
+	/* Scale will be applied separately. Do not apply the scale to the coefficients
+	 * directly like IIR1 does. */
 	cbq->scale = dsp_from_double(digital.gain / response);
 
 	for(int i = 0; i < NUM_STAGES; ++i) {

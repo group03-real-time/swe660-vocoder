@@ -9,57 +9,29 @@ extern "C" {
 
 typedef struct {
 	/* All coefficients normalized by a0 */
-	//dsp_num b0;
-	//dsp_num b1;
-	//dsp_num b2;
 
-	/* NOte: b1 is either -2 or 2, and in fact, this is just a matter of whether
+	/* We do not provide b0, b1, or b2 coefficients for the bpf biquad. */
+	/* dsp_num b0, b1, b2; */
+
+	/* Note: b1 is either -2 or 2, and in fact, this is just a matter of whether
 	 * the biquad is at at even index or odd index. (even index = positive 2, 
 	 * odd index = -2.) So instead of storing that, we just use two functions, 
 	 * and hope the compiler figures out the best thing to do. */
 
 	dsp_num a1;
 	dsp_num a2;
-} biquad;
+} bpf_biquad;
 
 /* Note: NUM_STAGES *must* be even */
 #define NUM_STAGES 4
 
 typedef struct {
-	biquad  biquads[NUM_STAGES];
-	dsp_num y_array[NUM_STAGES][3];
-	dsp_num scale;
-} cascaded_biquad;
+	bpf_biquad biquads[NUM_STAGES];
+	dsp_num    y_array[NUM_STAGES][3];
+	dsp_num    scale;
+} bpf_cascaded_biquad;
 
-float cbiquad_update(cascaded_biquad *bq, dsp_num *x);
-void design_bpf(cascaded_biquad *cbq, double fc, double fw);
-
-/* Struct for representing an EQ filter based on the RBJ cookbook. This source
- * can be found in different places, e.g. https://www.w3.org/TR/audio-eq-cookbook/
- * Obviously not the best kind of filters ever, but should work for our purposes.
- *
- * Represents a biquad filter in general. */
-typedef struct {
-	float x[3];
-	float y[3];
-
-	/* All coefficients normalized by a0 */
-	float b0;
-	float b1;
-	float b2;
-
-	float a1;
-	float a2;
-} rbj_eq;
-
-/* Output can be read out of eq->y[0] */
-void eq_update(rbj_eq *eq, float sample);
-
-/* Note: frequency should be in interval [0, 0.5) */
-void eq_create_bpf(rbj_eq *eq, double freq, double bandwidth);
-
-#ifdef __cplusplus
-}
-#endif
+float cbiquad_update(bpf_cascaded_biquad *bq, dsp_num *x);
+void design_bpf(bpf_cascaded_biquad *cbq, double fc, double fw);
 
 #endif

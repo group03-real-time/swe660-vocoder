@@ -5,8 +5,8 @@
 #include "bpf.h"
 
 typedef struct {
-	cascaded_biquad mod_filters[VOCODER_BANDS];
-	cascaded_biquad car_filters[VOCODER_BANDS];
+	bpf_cascaded_biquad mod_filters[VOCODER_BANDS];
+	bpf_cascaded_biquad car_filters[VOCODER_BANDS];
 	dsp_num envelope_follow[VOCODER_BANDS];
 
 	dsp_num mod_x[3];
