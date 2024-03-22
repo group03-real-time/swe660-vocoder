@@ -120,10 +120,11 @@ vc_process(vocoder *v, dsp_num mod, dsp_num car) {
 
 	memmove(v->mod_x + 1, v->mod_x, sizeof(dsp_num) * 2);
 	memmove(v->car_x + 1, v->car_x, sizeof(dsp_num) * 2);
+
 	v->mod_x[0] = mod * INPUT_EXTRA_MUL;
 	v->car_x[0] = car * INPUT_EXTRA_MUL;
 
-	dsp_num sum = dsp_zero;
+	dsp_largenum suml = dsp_zero;
 
 	for(int i = 0; i < VOCODER_BANDS; ++i) {
 		dsp_num m = cbiquad_update(&v->mod_filters[i], v->mod_x);//v->mod_filters[i].filter<float>(mod);
@@ -141,10 +142,10 @@ vc_process(vocoder *v, dsp_num mod, dsp_num car) {
 		//eq_update(&v->carrier_filters[i], car);
 		dsp_num c = cbiquad_update(&v->car_filters[i], v->car_x);
 
-		sum += dsp_mul(c, v->envelope_follow[i]);
-
-		
+		suml += dsp_mul_large(c, v->envelope_follow[i]);
 	}
+
+	dsp_num sum = dsp_compact(suml);
 
 	v->mod_ef += dsp_mul((dsp_abs(mod) - v->mod_ef), lerp_factor_bigef);
 	v->sum_ef += dsp_mul((dsp_abs(sum) - v->sum_ef), lerp_factor_bigef);

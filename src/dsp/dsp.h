@@ -43,15 +43,30 @@ dsp_abs(dsp_num f) {
 }
 
 #define dsp_zero 0.0f
+#define INPUT_EXTRA_MUL 1
 
 #else
 
 #include <stdint.h>
 
-#define DSP_POINT_IDX 59 /* only a handful of bits above 1.0 */
+//#ifdef DSP_FIXED_32
+
+#define DSP_POINT_IDX 29 /* only a handful of bits above 1.0 */
+typedef int32_t dsp_num;
+typedef int64_t dsp_largenum;
+
+#define LARGER_T int64_t
+#define INPUT_EXTRA_MUL 4
+
+/*#else
+
+#define DSP_POINT_IDX 59
 typedef int64_t dsp_num;
 
 #define LARGER_T __int128_t
+#define INPUT_EXTRA_MUL 16
+
+#endif*/
 
 /* For now: no addition or subtraction, as the built in operators will work. */
 /*static inline dsp_num
@@ -65,6 +80,19 @@ dsp_mul(dsp_num a, dsp_num b) {
 	const LARGER_T b64 = b;
 	const LARGER_T res = a64 * b64;
 	return (dsp_num)(res >> DSP_POINT_IDX);
+}
+
+static inline dsp_largenum
+dsp_mul_large(dsp_num a, dsp_num b) {
+	const LARGER_T a64 = a;
+	const LARGER_T b64 = b;
+	const LARGER_T res = a64 * b64;
+	return res;
+}
+
+static inline dsp_num
+dsp_compact(dsp_largenum num) {
+	return (dsp_num)(num >> DSP_POINT_IDX);
 }
 
 static inline dsp_num
@@ -102,6 +130,6 @@ dsp_abs(dsp_num f) {
 
 #endif
 
-#define INPUT_EXTRA_MUL 16
+
 
 #endif
