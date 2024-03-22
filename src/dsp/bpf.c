@@ -13,8 +13,8 @@ typedef struct {
 } double_biquad;
 
 /* Output can be read out of eq->y[0] */
-void 
-biquad_update_even(biquad *bq, dsp_num *x, dsp_num *y) {
+static inline void 
+biquad_update_even(biquad *bq, dsp_num *x, dsp_num *y, int input_gain) {
 	/* Each biquad will update the corresponding y array. WE assume x was already
 	 * updated. */
 	//memmove(eq->x + 1, eq->x, sizeof(*eq->x) * 2);
@@ -31,11 +31,12 @@ biquad_update_even(biquad *bq, dsp_num *x, dsp_num *y) {
 	 * So simply remove the multiplication. */
 	//y[0] = /*bq->b0 **/ x[0] + bq->b1 * x[1] + /*bq->b2 * */x[2]
 	//			         - bq->a1 * y[1] - bq->a2 * y[2];
-	y[0] = x[0]
-	     + (x[1] << 1) /* even index: b1 = 2 */
-		 + x[2]
+	y[0] = (x[0] * input_gain)
+	     + ((x[1] * input_gain) << 1) /* even index: b1 = 2 */
+		 + (x[2] * input_gain)
 		 - dsp_mul(bq->a1, y[1])
 		 - dsp_mul(bq->a2, y[2]);
+	//y[0] *= PER_STAGE_BOOST;
 
 #ifdef DSP_FLOAT
 	/* Flush denormalized values for 11x speed improvement on x86 */
@@ -45,8 +46,8 @@ biquad_update_even(biquad *bq, dsp_num *x, dsp_num *y) {
 #endif
 }
 
-void 
-biquad_update_odd(biquad *bq, dsp_num *x, dsp_num *y) {
+static inline void 
+biquad_update_odd(biquad *bq, dsp_num *x, dsp_num *y, int input_gain) {
 	/* Each biquad will update the corresponding y array. WE assume x was already
 	 * updated. */
 	//memmove(eq->x + 1, eq->x, sizeof(*eq->x) * 2);
@@ -63,11 +64,12 @@ biquad_update_odd(biquad *bq, dsp_num *x, dsp_num *y) {
 	 * So simply remove the multiplication. */
 	//y[0] = /*bq->b0 **/ x[0] + bq->b1 * x[1] + /*bq->b2 * */x[2]
 	//			         - bq->a1 * y[1] - bq->a2 * y[2];
-	y[0] = x[0]
-	     - (x[1] << 1) /* odd index: b1 = -2 */
-		 + x[2]
+	y[0] = (x[0] * input_gain)
+	     - ((x[1] * input_gain) << 1) /* odd index: b1 = -2 */
+		 + (x[2] * input_gain)
 		 - dsp_mul(bq->a1, y[1])
 		 - dsp_mul(bq->a2, y[2]);
+	//y[0] *= PER_STAGE_BOOST;
 
 #ifdef DSP_FLOAT
 	/* Flush denormalized values for 11x speed improvement on x86 */
@@ -98,6 +100,7 @@ biquad_update_scaled_even(biquad *bq, dsp_num *x, dsp_num *y, dsp_num scale) {
 		 + dsp_mul(x[2], scale)
 		 - dsp_mul(bq->a1, y[1])
 		 - dsp_mul(bq->a2, y[2]);
+	//y[0] *= PER_STAGE_BOOST;
 	/*y[0] = dsp_mul(dsp_mul(bq->b0, x[0]), scale)
 	     + dsp_mul(dsp_mul(bq->b1, x[1]), scale)
 		 + dsp_mul(dsp_mul(bq->b2, x[2]), scale)
@@ -112,6 +115,10 @@ biquad_update_scaled_even(biquad *bq, dsp_num *x, dsp_num *y, dsp_num scale) {
 #endif
 }
 
+static const int input_gains[] = {
+	1, 2, 2, 2, 2, 2, 2, 2
+};
+
 /* Assume x was already updated */
 float
 cbiquad_update(cascaded_biquad *bq, dsp_num *x) {
@@ -120,17 +127,26 @@ cbiquad_update(cascaded_biquad *bq, dsp_num *x) {
 	/* Note: NUM_STAGES must be at least 2 */
 	biquad_update_odd(&bq->biquads[1],
 			bq->y_array[0],
-			bq->y_array[1]);
+			bq->y_array[1], input_gains[1]);
 
 	for(int i = 2; i < NUM_STAGES; i += 2) {
 		biquad_update_even(&bq->biquads[i],
 			bq->y_array[i - 1],
-			bq->y_array[i]);
+			bq->y_array[i], input_gains[i]);
 		biquad_update_odd(&bq->biquads[i + 1],
 			bq->y_array[i + 1 - 1],
-			bq->y_array[i + 1]);
+			bq->y_array[i + 1], input_gains[i + 1]);
 	}
-	return bq->y_array[NUM_STAGES - 1][0];
+	
+	dsp_num res = bq->y_array[NUM_STAGES - 1][0];
+	//for(int i = 0; i < NUM_STAGES; ++i) {
+	//	res /= input_gains[i];
+	//}
+
+	//if(res != p) {
+		//printf("match: %d vs %d\n",res, p);
+	//}
+	return res;
 }
 
 typedef struct {

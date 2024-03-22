@@ -56,7 +56,8 @@ typedef int32_t dsp_num;
 typedef int64_t dsp_largenum;
 
 #define LARGER_T int64_t
-#define INPUT_EXTRA_MUL 4
+#define INPUT_EXTRA_MUL 1
+//#define INPUT_EXTRA_MUL 4
 
 /*#else
 
