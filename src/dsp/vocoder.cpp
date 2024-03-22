@@ -120,8 +120,8 @@ vc_process(vocoder *v, dsp_num mod, dsp_num car) {
 
 	memmove(v->mod_x + 1, v->mod_x, sizeof(dsp_num) * 2);
 	memmove(v->car_x + 1, v->car_x, sizeof(dsp_num) * 2);
-	v->mod_x[0] = mod;
-	v->car_x[0] = car;
+	v->mod_x[0] = mod * INPUT_EXTRA_MUL;
+	v->car_x[0] = car * INPUT_EXTRA_MUL;
 
 	dsp_num sum = dsp_zero;
 

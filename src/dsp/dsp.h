@@ -48,8 +48,10 @@ dsp_abs(dsp_num f) {
 
 #include <stdint.h>
 
-#define DSP_POINT_IDX 28 /* only a handful of bits above 1.0 */
-typedef int32_t dsp_num;
+#define DSP_POINT_IDX 59 /* only a handful of bits above 1.0 */
+typedef int64_t dsp_num;
+
+#define LARGER_T __int128_t
 
 /* For now: no addition or subtraction, as the built in operators will work. */
 /*static inline dsp_num
@@ -59,31 +61,31 @@ dsp_add(dsp_num a, dsp_num b) {
 
 static inline dsp_num
 dsp_mul(dsp_num a, dsp_num b) {
-	const int64_t a64 = a;
-	const int64_t b64 = b;
-	const int64_t res = a64 * b64;
+	const LARGER_T a64 = a;
+	const LARGER_T b64 = b;
+	const LARGER_T res = a64 * b64;
 	return (dsp_num)(res >> DSP_POINT_IDX);
 }
 
 static inline dsp_num
 dsp_div(dsp_num a, dsp_num b) {
-	const int64_t a64 = ((int64_t)a << DSP_POINT_IDX);
-	const int64_t b64 = b;
-	const int64_t res = a64 / b64;
+	const LARGER_T a64 = ((LARGER_T)a << DSP_POINT_IDX);
+	const LARGER_T b64 = b;
+	const LARGER_T res = a64 / b64;
 	return (dsp_num)res;
 }
 
 static inline float
 dsp_to_float(dsp_num f) {
 	double b = (double)f;
-	double shift = (double)(1 << DSP_POINT_IDX);
+	double shift = (double)(1LL << DSP_POINT_IDX);
 	b /= shift;
 	return (float)b;
 }
 
 static inline dsp_num 
 dsp_from_double(double d) {
-	double shift = (double)(1 << DSP_POINT_IDX);
+	double shift = (double)(1LL << DSP_POINT_IDX);
 	d *= shift;
 	return (dsp_num)d;
 }
@@ -96,6 +98,10 @@ dsp_abs(dsp_num f) {
 
 #define dsp_zero 0
 
+
+
 #endif
+
+#define INPUT_EXTRA_MUL 16
 
 #endif
