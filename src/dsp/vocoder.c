@@ -71,6 +71,4 @@ vc_init(vocoder *v) {
 
 		f += freq_div;
 	}
-
-	return v;
 }
