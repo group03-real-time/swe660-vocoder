@@ -23,6 +23,7 @@ typedef struct {
 typedef struct {
 	biquad  biquads[NUM_STAGES];
 	dsp_num y_array[NUM_STAGES][3];
+	dsp_num scale;
 } cascaded_biquad;
 
 float cbiquad_update(cascaded_biquad *bq, dsp_num *x);

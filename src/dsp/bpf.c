@@ -4,7 +4,13 @@
 #include <math.h>
 #include <complex.h>
 
-
+typedef struct {
+	double a1;
+	double a2;
+	double b0;
+	double b1;
+	double b2;
+} double_biquad;
 
 /* Output can be read out of eq->y[0] */
 void 
@@ -39,10 +45,42 @@ biquad_update(biquad *bq, dsp_num *x, dsp_num *y) {
 #endif
 }
 
+void 
+biquad_update_scaled(biquad *bq, dsp_num *x, dsp_num *y, dsp_num scale) {
+	/* Each biquad will update the corresponding y array. WE assume x was already
+	 * updated. */
+	//memmove(eq->x + 1, eq->x, sizeof(*eq->x) * 2);
+	memmove(y + 1, y, sizeof(*y) * 2);
+
+	/* Assume that x[0] is the new sample */
+
+	/* Finally, compute y[0] */
+	/* TODO: Note: b1 is zero for bpf, which is the only filter type we're using.
+	 * So, just don't include it in the equation, for speed. */
+
+
+	/* Optimization: According to some analysis, it appears that b0 and b2 are always one.
+	 * So simply remove the multiplication. */
+	//y[0] = /*bq->b0 **/ x[0] + bq->b1 * x[1] + /*bq->b2 * */x[2]
+	//			         - bq->a1 * y[1] - bq->a2 * y[2];
+	y[0] = dsp_mul(dsp_mul(bq->b0, x[0]), scale)
+	     + dsp_mul(dsp_mul(bq->b1, x[1]), scale)
+		 + dsp_mul(dsp_mul(bq->b2, x[2]), scale)
+		 - dsp_mul(bq->a1, y[1])
+		 - dsp_mul(bq->a2, y[2]);
+
+#ifdef DSP_FLOAT
+	/* Flush denormalized values for 11x speed improvement on x86 */
+	if(dsp_abs(y[0]) < 1.175494350822287508e-38) {
+		y[0] = 0.0;
+	}
+#endif
+}
+
 /* Assume x was already updated */
 float
 cbiquad_update(cascaded_biquad *bq, dsp_num *x) {
-	biquad_update(&bq->biquads[0], x, bq->y_array[0]);
+	biquad_update_scaled(&bq->biquads[0], x, bq->y_array[0], bq->scale);
 	for(int i = 1; i < NUM_STAGES; ++i) {
 		biquad_update(&bq->biquads[i],
 			bq->y_array[i - 1],
@@ -201,17 +239,17 @@ double norm(complex c) {
 	return i * i + r * r;
 }
 
-void bq_set_coefficients(biquad *bq, double a0, double a1, double a2, double b0, double b1, double b2) {
-	bq->a1 = dsp_from_double(a1 / a0);
-	bq->a2 = dsp_from_double(a2 / a0);
-	bq->b0 = dsp_from_double(b0 / a0);
-	bq->b1 = dsp_from_double(b1 / a0);
-	bq->b2 = dsp_from_double(b2 / a0);
+void bq_set_coefficients(double_biquad *bq, double a0, double a1, double a2, double b0, double b1, double b2) {
+	bq->a1 = a1 / a0;
+	bq->a2 = a2 / a0;
+	bq->b0 = b0 / a0;
+	bq->b1 = b1 / a0;
+	bq->b2 = b2 / a0;
 
-	//printf("coefficients [a1 a2 b0 b1 b2] = %f\t%f\t%f\t%f\t%f\n", bq->a1, bq->a2, bq->b0, bq->b1, bq->b2);
+	printf("coefficients [a1 a2 b0 b1 b2] = %f\t%f\t%f\t%f\t%f\n", bq->a1, bq->a2, bq->b0, bq->b1, bq->b2);
 }
 
-void bq_from_pzp(biquad *bq, pole_zero_pair *pzp) {
+void bq_from_pzp(double_biquad *bq, pole_zero_pair *pzp) {
 	const double a0 = 1;
 		double a1;
 		double a2;
@@ -258,7 +296,7 @@ void bq_from_pzp(biquad *bq, pole_zero_pair *pzp) {
 
 
 
-complex cbq_response(cascaded_biquad *cbq, double normalized_frequency) {
+complex cbq_response(cascaded_biquad *cbq, double_biquad *dbqs, double normalized_frequency) {
 	//if (normalized_frequency > 0.5) throw_invalid_argument(maxFError);
 	//if (normalized_frequency < 0.0) throw_invalid_argument(minFError);
 	double w = 2 * doublePi * normalized_frequency;
@@ -269,7 +307,7 @@ complex cbq_response(cascaded_biquad *cbq, double normalized_frequency) {
 
 	//const Biquad* stage = m_stageArray;
 	for (int i = 0; i < NUM_STAGES; ++i) {
-		biquad *bq = &cbq->biquads[i];
+		double_biquad *bq = &dbqs[i];
 
 		complex cb = 1.0;
 		complex ct =    bq->b0;
@@ -286,11 +324,21 @@ complex cbq_response(cascaded_biquad *cbq, double normalized_frequency) {
 	return ch / cbot;
 }
 
-void cbq_apply_scale(cascaded_biquad *cbq, double scale) {
+void cbq_apply_scale(double_biquad *bq, double scale) {
 	/* Apparently only applies to the first biquad */
-	cbq->biquads[0].b0 *= scale;
-	cbq->biquads[0].b1 *= scale;
-	cbq->biquads[0].b2 *= scale;
+	bq->b0 *= scale;
+	bq->b1 *= scale;
+	bq->b2 *= scale;
+}
+
+void bq_from_dbq(biquad *bq, double_biquad *dbq) {
+	bq->a1 = dsp_from_double(dbq->a1);
+	bq->a2 = dsp_from_double(dbq->a2);
+	bq->b0 = dsp_from_double(dbq->b0);
+	bq->b1 = dsp_from_double(dbq->b1);
+	bq->b2 = dsp_from_double(dbq->b2);
+
+	printf("coefficients [a1 a2 b0 b1 b2] = %f\t%f\t%f\t%f\t%f\n", dsp_to_float(bq->a1), dsp_to_float(bq->a2), dsp_to_float(bq->b0), dsp_to_float(bq->b1), dsp_to_float(bq->b2));
 }
 
 void design_bpf(cascaded_biquad *cbq, double fc, double fw) {
@@ -298,12 +346,21 @@ void design_bpf(cascaded_biquad *cbq, double fc, double fw) {
 	digital_layout digital = {0};
 	analog_design(&analog);
 
+	double_biquad d_biquads[NUM_STAGES] = {0};
+
 	band_pass_transform(&analog, &digital, fc, fw);
 
 	for(int i = 0; i < NUM_STAGES; ++i) {
-		bq_from_pzp(&cbq->biquads[i], &digital.poles[i]);
+		bq_from_pzp(&d_biquads[i], &digital.poles[i]);
 	}
 
-	double response = sqrt(norm(cbq_response(cbq, digital.w / (2 * doublePi))));
-	cbq_apply_scale(cbq, digital.gain / response);
+	double response = sqrt(norm(cbq_response(cbq, d_biquads, digital.w / (2 * doublePi))));
+	//cbq_apply_scale(&d_biquads[0], digital.gain / response);
+
+	/* Scale will be applied separately */
+	cbq->scale = dsp_from_double(digital.gain / response);
+
+	for(int i = 0; i < NUM_STAGES; ++i) {
+		bq_from_dbq(&cbq->biquads[i], &d_biquads[i]);
+	}
 }
