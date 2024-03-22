@@ -125,6 +125,10 @@ int main(int argc, char **argv) {
 			//e_test[j][i] = voc->envelope_follow[j];
 		}
 
+		if(i % 10000 == 0) {
+			printf("processed %d frames\n", i);
+		}
+
 		/* Only use the leftmost channel */
 		mi += mod_channels;
 		ci += car_channels;

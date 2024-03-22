@@ -29,7 +29,7 @@ SRC_IIR=\
 SRC_DIRECTORIES=dsp iir
 
 # List of flags we want for the C compiler
-CFLAGS_DEFAULT=-Wall -std=gnu11 -O3 -Wno-error=unused-result
+CFLAGS_DEFAULT=-Wall -std=gnu11 -O3 -Wno-error=unused-result -g
 LDFLAGS_DEFAULT=-lm
 
 # The default SSH target, or whatever, for the beaglebone. Can be overridden
@@ -112,7 +112,7 @@ DEFS_$(1)?=
 # - The standard CFLAGS we configured in CFLAGS_DEFAULT
 # - A -D<Macro> flag for every macro defined in the DEFS variable.
 CFLAGS_$(1):=$$(CFLAGS_$(1)) $$(CFLAGS) $$(CFLAGS_DEFAULT) $$(DEFS_$(1):%=-D%) -DTARGET_NAME='"$(TARGET)"'
-CPPFLAGS_$(1):=$$(CPPFLAGS_$(1)) -O2 $$(DEFS_$(1):%=-D%) -DTARGET_NAME='"$(TARGET)"'
+CPPFLAGS_$(1):=$$(CPPFLAGS_$(1)) -O2 -g $$(DEFS_$(1):%=-D%) -DTARGET_NAME='"$(TARGET)"'
 LDFLAGS_$(1):=$$(LDFLAGS) $$(LDFLAGS_DEFAULT)
 
 # The build directories are the directories we need to exist for our compiled
