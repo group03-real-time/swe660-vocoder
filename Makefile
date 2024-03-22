@@ -16,15 +16,8 @@ SRCS=\
 	good_user_input.c\
 	dsp/bpf.c\
 	dsp/testwav.c\
-	#main.c\
-	dsp/testwav.c\
-
-SRC_CPP=\
-	dsp/vocoder.cpp
-
-SRC_IIR=\
-	Biquad.cpp Butterworth.cpp Cascade.cpp ChebyshevI.cpp ChebyshevII.cpp Custom.cpp PoleFilter.cpp RBJ.cpp
-
+	dsp/vocoder.c\
+	
 # List of subdirectories inside src. Needed to keep the build fast.
 SRC_DIRECTORIES=dsp iir
 
@@ -104,7 +97,6 @@ define BUILD_template =
 # If we're cross compiling, we need to use CC=arm-linux-gnueabiehf-gcc, and
 # if we're running on QEMU, we define EMULATOR so we know that we're on emulator.
 CC_$(1)?=gcc
-CPP_$(1)?=g++
 DEFS_$(1)?=
 
 # The CFLAGS include:
@@ -123,7 +115,7 @@ BUILD_DIRECTORIES_$(1):=$$(BUILD_ROOT_$(1)) $$(SRC_DIRECTORIES:%=$$(BUILD_ROOT_$
 
 # The object files correspond to the source files as such:
 #                    src/main.c <-> build/main.o
-OBJS_$(1)=$$(SRCS:%.c=$$(BUILD_ROOT_$(1))/%.c.o) $$(SRC_CPP:%.cpp=$$(BUILD_ROOT_$(1))/%.cpp.o) $$(SRC_IIR:%.cpp=$$(BUILD_ROOT_$(1))/iir/%.cpp.o) 
+OBJS_$(1)=$$(SRCS:%.c=$$(BUILD_ROOT_$(1))/%.c.o)
 
 #allbuilds:
 #	CC=arm-linux-gnueabihf-gcc DEFS=EMULATOR BUILD_ROOT=build-qemu TARGET=$(TARGET)-qemu make all
@@ -136,7 +128,7 @@ TARGET_$(1)=$(TARGET)-$(1)
 #       Uses LDFLAGS as flags for the compiler (because we're actually
 #       just using the compiler to invoke the linker.)
 $$(TARGET_$(1)): $$(OBJS_$(1))
-	$$(CPP_$(1)) $$^ -o $$@ $$(LDFLAGS_$(1))
+	$$(CC_$(1)) $$^ -o $$@ $$(LDFLAGS_$(1))
 
 # Create a phony rule for building a specific version of the build, in case you
 # have two builds. Example: with conf-qemu-and-cross, you can run make qemu
@@ -158,12 +150,6 @@ clean-$(1):
 # are generated, so that make will know to rebuild when headers change.
 $$(BUILD_ROOT_$(1))/%.c.o: src/%.c | $$(BUILD_DIRECTORIES_$(1))
 	$$(CC_$(1)) -MMD -c $$< -o $$@ $$(CFLAGS_$(1))
-
-$$(BUILD_ROOT_$(1))/%.cpp.o: src/%.cpp | $$(BUILD_DIRECTORIES_$(1))
-	$$(CC_$(1)) -x c++ -MMD -c $$< -o $$@ $$(CPPFLAGS_$(1))
-
-$$(BUILD_ROOT_$(1))/iir/%.cpp.o: iir1/iir/%.cpp | $$(BUILD_DIRECTORIES_$(1))
-	$$(CC_$(1)) -x c++ -MMD -c $$< -o $$@ $$(CPPFLAGS_$(1))
 
 cc-cmd-$(1):
 	@echo $$(CC_$(1)) "src/*.c" -o $$(TARGET_$(1)) $$(CFLAGS_$(1)) $$(LDFLAGS_$(1))

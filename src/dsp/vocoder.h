@@ -4,29 +4,19 @@
 #include "dsp.h"
 #include "bpf.h"
 
-/* The main type used to process our samples. Takes two inputs: the modulator
- * (i.e. the voice signal) and the carrier (i.e. the synthesizer). */
-/*typedef struct {
-	rbj_eq mod_filters[VOCODER_BANDS];
-	rbj_eq carrier_filters[VOCODER_BANDS];
-	float envelope_follow[VOCODER_BANDS];
-} vocoder;*/
+typedef struct {
+	cascaded_biquad mod_filters[VOCODER_BANDS];
+	cascaded_biquad car_filters[VOCODER_BANDS];
+	dsp_num envelope_follow[VOCODER_BANDS];
 
-#ifdef __cplusplus
+	dsp_num mod_x[3];
+	dsp_num car_x[3];
 
-extern "C" {
+	dsp_num mod_ef;
+	dsp_num sum_ef;
+} vocoder;
 
-#endif
-
-typedef struct vocoder vocoder;
-
-vocoder *vc_new();
+void vc_init(vocoder *v);
 dsp_num vc_process(vocoder *v, dsp_num modulator, dsp_num carrier);
-
-#ifdef __cplusplus
-
-}
-
-#endif
 
 #endif

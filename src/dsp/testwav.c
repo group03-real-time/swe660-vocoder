@@ -108,7 +108,8 @@ int main(int argc, char **argv) {
 */
 	/* Initialize the vocoder */
 	//vocoder voc;
-	vocoder *voc = vc_new();
+	vocoder voc;
+	vc_init(&voc);
 
 	int mi = 0;
 	int ci = 0;
@@ -125,7 +126,7 @@ int main(int argc, char **argv) {
 
 		//printf("input samples = %d\t%d\n", m, c);
 
-		float o = dsp_to_float(vc_process(voc, m, c));
+		float o = dsp_to_float(vc_process(&voc, m, c));
 		out[i] = o;
 
 		for(int j = 0; j < VOCODER_BANDS; ++j) {

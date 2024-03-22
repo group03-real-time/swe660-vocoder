@@ -50,6 +50,7 @@
 		"stdexcept": "c",
 		"streambuf": "c",
 		"cinttypes": "c",
-		"typeinfo": "c"
+		"typeinfo": "c",
+		"vocoder.h": "c"
 	}
 }
