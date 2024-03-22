@@ -29,7 +29,7 @@ bpf_bq_update_even(bpf_biquad *bq, dsp_num *x, dsp_num *y, int input_gain) {
 	memmove(y + 1, y, sizeof(*y) * 2);
 
 	y[0] = (x[0] * input_gain)
-	     + ((x[1] * input_gain) << 1) /* even index: b1 = 2 */
+	     + dsp_lshift(x[1] * input_gain, 1) /* even index: b1 = 2 */
 		 + (x[2] * input_gain)
 		 - dsp_mul(bq->a1, y[1])
 		 - dsp_mul(bq->a2, y[2]);
@@ -47,7 +47,7 @@ bpf_bq_update_odd(bpf_biquad *bq, dsp_num *x, dsp_num *y, int input_gain) {
 	memmove(y + 1, y, sizeof(*y) * 2);
 
 	y[0] = (x[0] * input_gain)
-	     - ((x[1] * input_gain) << 1) /* odd index: b1 = -2 */
+	     - dsp_lshift(x[1] * input_gain, 1) /* odd index: b1 = -2 */
 		 + (x[2] * input_gain)
 		 - dsp_mul(bq->a1, y[1])
 		 - dsp_mul(bq->a2, y[2]);
@@ -60,12 +60,12 @@ bpf_bq_update_odd(bpf_biquad *bq, dsp_num *x, dsp_num *y, int input_gain) {
 #endif
 }
 
-void 
+static inline void 
 bpf_bq_update_scaled_even(bpf_biquad *bq, dsp_num *x, dsp_num *y, dsp_num scale) {
 	memmove(y + 1, y, sizeof(*y) * 2);
 
 	y[0] = dsp_mul(x[0], scale)
-	     + dsp_mul(x[1] << 1, scale) /* even index: b1 = 2 */
+	     + dsp_mul(dsp_lshift(x[1], 1), scale) /* even index: b1 = 2 */
 		 + dsp_mul(x[2], scale)
 		 - dsp_mul(bq->a1, y[1])
 		 - dsp_mul(bq->a2, y[2]);

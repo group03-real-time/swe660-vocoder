@@ -41,22 +41,15 @@ BEAGLEBONE_SSH?=debian@192.168.7.2
 # 2) for cross, without mmap
 # 3) for cross, with mmap
 ifeq (,$(wildcard ./config.mk))
-BUILDS=qemu cross-no-mmap cross-mmap
+BUILDS=cross dsp32 dspfloat
 
-CC_qemu=arm-linux-gnueabihf-gcc
-CPP_qemu=arm-linux-gnueabihf-g++
-LDFLAGS_qemu:=$(LDFLAGS) -static
-DEFS_qemu=EMULATOR
+DEFS_dspfloat=DSP_FLOAT
+DEFS_dsp32=DSP_FIXED_32
 
-CC_cross-no-mmap=arm-linux-gnueabihf-gcc
-CPP_qemu=arm-linux-gnueabihf-g++
+CC_cross=arm-linux-gnueabihf-gcc
+DEFS_cross=USE_MMAP_GPIO
 
-CC_cross-mmap=arm-linux-gnueabihf-gcc
-CPP_qemu=arm-linux-gnueabihf-g++
-DEFS_cross-mmap=USE_MMAP_GPIO
-
-IS_CROSS_cross-no-mmap=true # used to get scp and run-cross commands
-IS_CROSS_cross-mmap=true
+IS_CROSS_cross=true
 else
 BUILDS?=default
 endif

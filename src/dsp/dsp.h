@@ -11,6 +11,7 @@
 #include <math.h>
 
 typedef float dsp_num;
+typedef float dsp_largenum;
 
 /*static inline
 dsp_num dsp_add(dsp_num a, dsp_num b) {
@@ -20,6 +21,16 @@ dsp_num dsp_add(dsp_num a, dsp_num b) {
 static inline
 dsp_num dsp_mul(dsp_num a, dsp_num b) {
 	return a * b;
+}
+
+static inline dsp_largenum
+dsp_mul_large(dsp_num a, dsp_num b) {
+	return a * b;
+}
+
+static inline dsp_num
+dsp_compact(dsp_largenum num) {
+	return num;
 }
 
 static inline
@@ -40,6 +51,12 @@ dsp_num dsp_from_double(double d) {
 static inline dsp_num
 dsp_abs(dsp_num f) {
 	return fabsf(f);
+}
+
+static inline dsp_num
+dsp_lshift(dsp_num expr, int shift) {
+	int mask = (1 << shift);
+	return expr * mask;
 }
 
 #define dsp_zero 0.0f
@@ -124,6 +141,8 @@ dsp_abs(dsp_num f) {
 	/* note: does not handle absolute minimum value */
 	return (f < 0) ? -f : f;
 }
+
+#define dsp_lshift(expr, shift) ((expr) << (shift))
 
 #define dsp_zero 0
 
