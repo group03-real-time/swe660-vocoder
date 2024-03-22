@@ -9,10 +9,12 @@
 #include <unistd.h>
 #include <fcntl.h>
 
+/* Timing info... 44100 * 5 samples in ... 56.342 seconds after buffer...???? */
+
 /* original run: 44100 * 5 samples in 32.46 seconds
  * so the samples_per_sec we can run with using the fd method is: 6792
  */
-#define SAMPLES_PER_SEC 6792
+#define SAMPLES_PER_SEC 44100
 
 /* 5 second audio clip */
 int total_samples = SAMPLES_PER_SEC * 5;
@@ -70,26 +72,57 @@ main(void) {
 	/* utsname */
 	app_show_utsname();
 
-	FILE *wav_file = fopen("out.wav", "wb");
+	FILE *wav_file = fopen("out-new.wav", "wb");
 
 	write_wav_header(wav_file);
 
-	/* Begin the app loop. See app.h for more info */
-	app_init_loop();
+	/*int en_fd = open("/sys/bus/iio/devices/iio:device0/buffer/enable", O_WRONLY);
+	if(!en_fd) { puts("could not open enable fd"); return 1; }
+	write(en_fd, "0", 1);
+	close(en_fd);
+
+	// Now, setup buffer 
+	int len_fd = open("/sys/bus/iio/devices/iio:device0/buffer/length", O_WRONLY);
+	if(!len_fd) { puts("could not open len"); return 1; }
+	write(len_fd, "256", 3);
+	close(len_fd);
+
+	// First, enable voltage 0 
+	int voltage0_fd = open("/sys/bus/iio/devices/iio:device0/scan_elements/in_voltage0_en", O_WRONLY);
+	if(!len_fd) { puts("could not open voltage0 enable"); return 1; }
+	write(voltage0_fd, "1", 1);
+	close(voltage0_fd);
+
+	en_fd = open("/sys/bus/iio/devices/iio:device0/buffer/enable", O_WRONLY);
+	if(!en_fd) { puts("could not open enable fd"); return 1; }
+	write(en_fd, "1", 1);
+	close(en_fd);*/
+
+	// Begin the app loop. See app.h for more info 
+	app_init_loop();	
 
 	
-	int fd = open("/sys/bus/iio/devices/iio:device0/in_voltage0_raw", O_RDONLY);
+
+	/* Finally, open the FD for reading from the buffer */
+	int rd_fd = open("/dev/iio:device0", O_RDONLY);
+	
+	//int fd = open("/sys/bus/iio/devices/iio:device0/in_voltage0_raw", O_RDONLY);
 
 	while(app_running) {
 		//FILE *voltage = fopen("/sys/bus/iio/devices/iio:device0/in_voltage0_raw", "r");
 		//fseek(voltage, 0, SEEK_SET);
-		lseek(fd, 0, SEEK_SET);
+		//lseek(fd, 0, SEEK_SET);
 		
-		char buf[5] = {0};
-		(void)read(fd, buf, 5);
+		//char buf[5] = {0};
+		//(void)read(fd, buf, 5);
+
+		uint16_t next;
+		read(rd_fd, &next, 2);
+
+		//printf("read = %u\n", next);
 		
-		int raw_v = 2048;
-		sscanf(buf, "%d", &raw_v);
+		int raw_v = next;
+		//sscanf(buf, "%d", &raw_v);
 		//fclose(voltage);
 		raw_v -= 2048;
 
@@ -98,7 +131,7 @@ main(void) {
 		write_int16(wav_file, sample);
 		
 
-		//usleep(22);
+		//usleep(16);
 		total_samples -= 1;
 
 		//printf("total_samples = %d\n", total_samples);
@@ -109,7 +142,7 @@ main(void) {
 
 		if(total_samples <= 0) break;
 	}
-	close(fd);
+	close(rd_fd);
 	//close(fd);	
 	fclose(wav_file);
 

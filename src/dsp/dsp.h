@@ -4,6 +4,6 @@
 #ifndef SAMPLE_RATE
 	#define SAMPLE_RATE 44100
 #endif
-#define VOCODER_BANDS 64
+#define VOCODER_BANDS 8
 
 #endif

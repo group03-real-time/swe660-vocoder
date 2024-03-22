@@ -2,59 +2,300 @@
 
 #include <string.h>
 #include <math.h>
+#include <complex.h>
+
+typedef struct {
+	/* All coefficients normalized by a0 */
+	float b0;
+	float b1;
+	float b2;
+
+	float a1;
+	float a2;
+} biquad;
+
+/* Note: NUM_STAGES *must* be even */
+#define NUM_STAGES 4
+
+typedef struct {
+	biquad biquads[NUM_STAGES];
+	float  y_array[NUM_STAGES][3];
+} cascaded_biquad;
 
 /* Output can be read out of eq->y[0] */
 void 
-eq_update(rbj_eq *eq, float sample) {
-	/* First, update arrays */
-	memmove(eq->x + 1, eq->x, sizeof(*eq->x) * 2);
-	memmove(eq->y + 1, eq->y, sizeof(*eq->y) * 2);
+biquad_update(biquad *bq, float *x, float *y) {
+	/* Each biquad will update the corresponding y array. WE assume x was already
+	 * updated. */
+	//memmove(eq->x + 1, eq->x, sizeof(*eq->x) * 2);
+	memmove(y + 1, y, sizeof(*y) * 2);
 
-	/* Then, add new sample */
-	eq->x[0] = sample;
+	/* Assume that x[0] is the new sample */
 
 	/* Finally, compute y[0] */
 	/* TODO: Note: b1 is zero for bpf, which is the only filter type we're using.
 	 * So, just don't include it in the equation, for speed. */
-	eq->y[0] = eq->b0 * eq->x[0] + eq->b1 * eq->x[1] + eq->b2 * eq->x[2]
-	                             - eq->a1 * eq->y[1] - eq->a2 * eq->y[2];
+	y[0] = bq->b0 * x[0] + bq->b1 * x[1] + bq->b2 * x[2]
+				         - bq->a1 * y[1] - bq->a2 * y[2];
 }
 
-void
-eq_create_bpf(rbj_eq *eq, double freq, double q) {
-	double omega0 = 2 * 3.1415926535897932384 * freq;
-	double sin_omega0 = sin(omega0);
+/* Assume x was already updated */
+float
+cbiquad_update(cascaded_biquad *bq, float *x) {
+	biquad_update(&bq->biquads[0], x, bq->y_array[0]);
+	for(int i = 1; i < NUM_STAGES; ++i) {
+		biquad_update(&bq->biquads[i],
+			bq->y_array[i - 1],
+			bq->y_array[i]);
+	}
+	return bq->y_array[NUM_STAGES - 1][0];
+}
 
-	//double q = 0.707;
-	//double q = 8.0;
-	double alpha = sin_omega0 / (2.0 * q);
+typedef struct {
+	complex p1;
+	complex z1;
+	complex p2;
+	complex z2;
+} pole_zero_pair;
 
-	//double alpha = sin_omega0 * sinh((log10(2) / 2) * bandwidth * sin_omega0);
+typedef struct {
+	pole_zero_pair poles[NUM_STAGES / 2];
+	double w;
+	double gain;
+} analog_layout;
 
-	double b0 = alpha;
-	double b1 = 0;
-	double b2 = -alpha;
-	double a0 = (1.0 + alpha);
-	double a1 = -2.0 * cos(omega0);
-	double a2 = (1.0 - alpha);
+typedef struct {
+	pole_zero_pair poles[NUM_STAGES];
+	double w;
+	double gain;
+} digital_layout;
 
-	/*double b0 = sin_omega0 / 2.0;
-	double b1 = 0.0;
-	double b2 = -sin_omega0 / 2.0;
-	double a0 = 1.0 + alpha;
-	double a1 = -2.0 * cos(omega0);
-	double a2 = 1.0 - alpha;*/
+#define POLE_ZERO_PAIR_CONJ(pole, zero)\
+(pole_zero_pair){\
+	.p1 = pole,\
+	.z1 = zero,\
+	.p2 = conj(pole),\
+	.z2 = conj(zero)\
+}
 
-	/* Normalize coefficients */
-	b0 /= a0;
-	b1 /= a0;
-	b2 /= a0;
-	a1 /= a0;
-	a2 /= a0;
+const double doublePi	=3.1415926535897932384626433832795028841971;
+const double doublePi_2	=1.5707963267948966192313216916397514420986;
+const double doubleLn2  =0.69314718055994530941723212145818;
+const double doubleLn10	=2.3025850929940456840179914546844;
 
-	eq->a1 = (float)a1;
-	eq->a2 = (float)a2;
-	eq->b0 = (float)b0;
-	eq->b1 = (float)b1;
-	eq->b2 = (float)b2;
+static inline
+complex polar(double r, double theta) {
+	return r * (cos(theta) + I * sin(theta));
+}
+
+static inline
+complex addmul(complex a, double v, complex b) {
+	 return (creal(a) + v * creal(b)) + I * (cimag(a) + v * cimag(b));
+}
+
+void analog_design(analog_layout *analog) {
+	const double n2 = 2 * NUM_STAGES;
+	const int pairs = NUM_STAGES / 2;
+	for (int i = 0; i < pairs; ++i)
+	{
+		complex pole = polar(1., doublePi_2 + (2 * i + 1) * doublePi / n2);
+		complex zero = INFINITY;
+
+		analog->poles[i] = POLE_ZERO_PAIR_CONJ(pole, zero);
+	}
+
+	analog->w    = 0.0;
+	analog->gain = 1.0;
+}
+
+typedef struct {
+	complex first;
+	complex second;
+} complex_pair;
+
+#define COMPLEX_PAIR(a, b) (complex_pair){.first = a, .second = b}
+
+complex_pair bp_transform_pair(complex c, double b, double a2, double b2, double ab_2) {
+	if (creal(c) == INFINITY)
+		return COMPLEX_PAIR(-1, 1);
+	
+	c = (1. + c) / (1. - c); // bilinear
+	
+	complex v = 0;
+	v = addmul (v, 4 * (b2 * (a2 - 1) + 1), c);
+	v += 8 * (b2 * (a2 - 1) - 1);
+	v *= c;
+	v += 4 * (b2 * (a2 - 1) + 1);
+	v = sqrt(v);
+	
+	complex u = -v;
+	u = addmul (u, ab_2, c);
+	u += ab_2;
+	
+	v = addmul (v, ab_2, c);
+	v += ab_2;
+	
+	complex d = 0;
+	d = addmul (d, 2 * (b - 1), c) + 2 * (1 + b);
+	
+	return COMPLEX_PAIR (u/d, v/d);
+}
+
+void band_pass_transform(analog_layout *analog, digital_layout *digital, double fc, double fw) {
+	//if (!(fc < 0.5)) throw_invalid_argument(cutoffError);
+	//if (fc < 0.0) throw_invalid_argument(cutoffNeg);
+
+	//digital.reset ();
+	
+	const double ww = 2 * doublePi * fw;
+	
+	// pre-calcs
+	double wc2 = 2 * doublePi * fc - (ww / 2);
+	double wc  = wc2 + ww;
+	
+	// what is this crap?
+	if (wc2 < 1e-8)
+		wc2 = 1e-8;
+	if (wc  > doublePi-1e-8)
+		wc  = doublePi-1e-8;
+	
+	double a =     cos ((wc + wc2) * 0.5) /
+		cos ((wc - wc2) * 0.5);
+	double b = 1 / tan ((wc - wc2) * 0.5);
+	double a2 = a * a;
+	double b2 = b * b;
+	double ab = a * b;
+	double ab_2 = 2 * ab;
+	
+	const int numPoles = NUM_STAGES;
+	const int pairs = numPoles / 2;
+	for (int i = 0; i < pairs; ++i)
+	{
+		complex_pair p1 = bp_transform_pair(analog->poles[i].p1, b, a2, b2, ab_2);
+		complex_pair z1 = bp_transform_pair(analog->poles[i].z1, b, a2, b2, ab_2);
+
+		digital->poles[i * 2]     = POLE_ZERO_PAIR_CONJ(p1.first, z1.first);
+		digital->poles[i * 2 + 1] = POLE_ZERO_PAIR_CONJ(p1.second, z1.second);
+		//const PoleZeroPair& pair = analog[i];
+		//ComplexPair p1 = transform (pair.poles.first);
+		//ComplexPair z1 = transform (pair.zeros.first);
+		
+		//digital.addPoleZeroConjugatePairs (p1.first, z1.first);
+		//digital.addPoleZeroConjugatePairs (p1.second, z1.second);
+	}
+	
+	double wn = analog->w;
+	digital->w = 2 * atan (sqrt (tan ((wc + wn)* 0.5) * tan((wc2 + wn)* 0.5)));
+	digital->gain = analog->gain;
+}
+
+double norm(complex c) {
+	double i = cimag(c);
+	double r = creal(c);
+	return i * i + r * r;
+}
+
+void bq_set_coefficients(biquad *bq, double a0, double a1, double a2, double b0, double b1, double b2) {
+	bq->a1 = a1 / a0;
+	bq->a2 = a2 / a0;
+	bq->b0 = b0 / a0;
+	bq->b1 = b1 / a0;
+	bq->b2 = b2 / a0;
+}
+
+void bq_from_pzp(biquad *bq, pole_zero_pair *pzp) {
+	const double a0 = 1;
+		double a1;
+		double a2;
+		const char errMsgPole[] = "imaginary parts of both poles need to be 0 or complex conjugate";
+		const char errMsgZero[] = "imaginary parts of both zeros need to be 0 or complex conjugate";
+
+		if (cimag(pzp->p1) != 0)
+		{
+			//if (pole2 != std::conj (pole1))
+			//	throw_invalid_argument(errMsgPole);
+			a1 = -2 * creal(pzp->p1);
+			a2 = norm(pzp->p1);
+		}
+		else
+		{
+			//if (pole2.imag() != 0)
+			//	throw_invalid_argument(errMsgPole);
+			a1 = -(creal(pzp->p1) + creal(pzp->p2));
+			a2 =   creal(pzp->p1) * creal(pzp->p2);
+		}
+
+		const double b0 = 1;
+		double b1;
+		double b2;
+
+		if (cimag(pzp->z1) != 0)
+		{
+			//if (zero2 != std::conj (zero1))
+			//	throw_invalid_argument(errMsgZero);
+			b1 = -2 * creal(pzp->z1);
+			b2 = norm(pzp->z1);
+		}
+		else
+		{
+			//if (zero2.imag() != 0)
+			//	throw_invalid_argument(errMsgZero);
+
+			b1 = -(creal(pzp->z1) + creal(pzp->z2));
+			b2 =   creal(pzp->z1) * creal(pzp->z2);
+		}
+
+		bq_set_coefficients(bq, a0, a1, a2, b0, b1, b2);
+}
+
+
+
+complex cbq_response(cascaded_biquad *cbq, double normalized_frequency) {
+	//if (normalized_frequency > 0.5) throw_invalid_argument(maxFError);
+	//if (normalized_frequency < 0.0) throw_invalid_argument(minFError);
+	double w = 2 * doublePi * normalized_frequency;
+	const complex czn1 = polar(1., -w);
+	const complex czn2 = polar(1., -2 * w);
+	complex ch = 1.0;
+	complex cbot = 1.0;
+
+	//const Biquad* stage = m_stageArray;
+	for (int i = 0; i < NUM_STAGES; ++i) {
+		biquad *bq = &cbq->biquads[i];
+
+		complex cb = 1.0;
+		complex ct =    bq->b0;
+		/* Note: original source divides by a0 here, but we guarantee that a0
+		 * will always be 1.0 */
+		ct = addmul (ct, bq->b1, czn1);
+		ct = addmul (ct, bq->b2, czn2);
+		cb = addmul (cb, bq->a1, czn1);
+		cb = addmul (cb, bq->a2, czn2);
+		ch   *= ct;
+		cbot *= cb;
+	}
+
+	return ch / cbot;
+}
+
+void cbq_apply_scale(cascaded_biquad *cbq, double scale) {
+	/* Apparently only applies to the first biquad */
+	cbq->biquads[0].b0 *= scale;
+	cbq->biquads[0].b1 *= scale;
+	cbq->biquads[0].b2 *= scale;
+}
+
+void design_bpf(cascaded_biquad *cbq, double fc, double fw) {
+	analog_layout analog = {0};
+	digital_layout digital = {0};
+	analog_design(&analog);
+
+	band_pass_transform(&analog, &digital, fc, fw);
+
+	for(int i = 0; i < NUM_STAGES; ++i) {
+		bq_from_pzp(&cbq->biquads[i], &digital.poles[i]);
+	}
+
+	double response = sqrt(norm(cbq_response(cbq, digital.w / (2 * doublePi))));
+	cbq_apply_scale(cbq, digital.gain / response);
 }

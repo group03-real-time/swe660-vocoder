@@ -15,7 +15,8 @@ SRCS=\
 	gpio_pins.c\
 	good_user_input.c\
 	dsp/bpf.c\
-	dsp/testwav.c\
+	main.c\
+	#dsp/testwav.c\
 
 SRC_CPP=\
 	dsp/vocoder.cpp
