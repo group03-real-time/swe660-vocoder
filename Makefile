@@ -17,9 +17,10 @@ SRCS=\
 	dsp/bpf.c\
 	dsp/testwav.c\
 	dsp/vocoder.c\
+	wav/wav.c\
 	
 # List of subdirectories inside src. Needed to keep the build fast.
-SRC_DIRECTORIES=dsp iir
+SRC_DIRECTORIES=dsp wav
 
 # List of flags we want for the C compiler
 CFLAGS_DEFAULT=-Wall -std=gnu11 -O3 -Wno-error=unused-result -g
