@@ -10,6 +10,8 @@ typedef struct {
 	uint64_t frames;
 	uint16_t channels;
 	uint32_t sample_rate;
+
+	uint64_t buffer_length;
 } wav_io;
 
 void wav_read_or_die(wav_io *io, const char *path);

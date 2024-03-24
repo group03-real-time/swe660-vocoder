@@ -44,6 +44,8 @@ wav_read_or_die(wav_io *io, const char *path) {
 	io->frames = frames;
 	io->channels = channels;
 	io->sample_rate = sr;
+
+	io->buffer_length = frames * channels;
 }
 
 void
@@ -59,6 +61,7 @@ wav_blank_or_die(wav_io *io, uint64_t frames, uint32_t channels, uint32_t sample
 	io->frames = frames;
 	io->channels = channels;
 	io->sample_rate = sample_rate;
+	io->buffer_length = io->frames * io->channels;
 }
 
 void

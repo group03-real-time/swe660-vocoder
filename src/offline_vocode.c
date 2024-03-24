@@ -11,14 +11,14 @@
 #include <stdio.h>
 
 int main_ov(int argc, char **argv) {
-	if(argc < 4) {
+	if(argc < 5) {
 		printf("usage: %s -ov <modulator.wav (voice)> <carrier.wav (synth)> <output.wav>\n", argv[0]);
 		return 1;
 	}
 
-	const char *mod_fp = argv[1];
-	const char *car_fp = argv[2];
-	const char *out_fp = argv[3];
+	const char *mod_fp = argv[2];
+	const char *car_fp = argv[3];
+	const char *out_fp = argv[4];
 
 	printf("processing with\n\tmodulator = %s\n\tcarrier = %s\n\toutput = %s\n", mod_fp, car_fp, out_fp);
 
@@ -41,6 +41,8 @@ int main_ov(int argc, char **argv) {
 		1,
 		SAMPLE_RATE);
 
+	printf("output frames = %llu\n", out.frames);
+
 	/* Initialize the vocoder */
 	vocoder voc;
 	vc_init(&voc);
@@ -49,8 +51,9 @@ int main_ov(int argc, char **argv) {
 	uint64_t ci = 0;
 
 	for(uint64_t i = 0; i < out.frames; ++i) {
-		dsp_num m = (mi < mod.frames) ? mod.buffer[mi] : 0;
-		dsp_num c = (ci < car.frames) ? car.buffer[ci] : 0;
+		dsp_num m = (mi < mod.buffer_length) ? mod.buffer[mi] : 0;
+		//if(i > 44330 && i < 82000) printf("mi = %llu mf = %llu m = %d\n", mi, mod.frames, m);
+		dsp_num c = (ci < car.buffer_length) ? car.buffer[ci] : 0;
 
 		out.buffer[i] = vc_process(&voc, m, c);
 
