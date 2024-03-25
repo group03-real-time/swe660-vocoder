@@ -18,6 +18,7 @@ SRCS=\
 	menu.c\
 	offline_vocode.c\
 	offline_synth.c\
+	offline_vocode_synth.c\
 	dsp/bpf.c\
 	dsp/vocoder.c\
 	dsp/synth.c\

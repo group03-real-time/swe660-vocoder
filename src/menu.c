@@ -10,6 +10,7 @@
 
 extern int main_ov(int argc, char **argv);
 extern int main_os(int argc, char **argv);
+extern int main_ovs(int argc, char **argv);
 
 extern int main_app(int argc, char **argv);
 
@@ -19,7 +20,7 @@ main(int argc, char **argv) {
 #ifdef HARDWARE
 		main_app(argc, argv);
 #else
-		puts("not on hardware: you must specify -ov or -os");
+		puts("not on hardware: you must specify -ov, -os, or -ovs");
 		return 1;
 #endif
 	}
@@ -32,6 +33,10 @@ main(int argc, char **argv) {
 		return main_os(argc, argv);
 	}
 
-	printf("error: unknown option %s. available options are: -ov, -os", argv[1]);
+	if(!strcmp(argv[1], "-ovs")) {
+		return main_ovs(argc, argv);
+	}
+
+	printf("error: unknown option %s. available options are: -ov, -os, -ovs", argv[1]);
 	return 1;
 }
