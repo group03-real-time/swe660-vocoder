@@ -51,6 +51,8 @@
 		"streambuf": "c",
 		"cinttypes": "c",
 		"typeinfo": "c",
-		"vocoder.h": "c"
+		"vocoder.h": "c",
+		"dsp.h": "c",
+		"stdint.h": "c"
 	}
 }

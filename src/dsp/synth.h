@@ -22,6 +22,8 @@ typedef struct {
 	dsp_num sample;
 	dsp_num envelope;
 
+	dsp_num white_noise_generator;
+
 	dsp_num phase;
 	dsp_num phase_step;
 

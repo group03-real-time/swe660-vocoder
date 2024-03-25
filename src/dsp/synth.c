@@ -67,7 +67,14 @@ synth_voice_process(synth_voice *v) {
 		v->phase -= dsp_one;
 	}
 
-	v->sample = sawtooth_wave(v->phase);
+	/* Multiply the value by a large prime to try to mix the digits */
+	v->white_noise_generator = ((v->white_noise_generator + 1) * 12347843);
+
+	/* Keep it within the range -1, 1 for better mixing. */
+	const dsp_num white_noise = dsp_rshift(v->white_noise_generator, 2);
+	const dsp_num sawtooth = sawtooth_wave(v->phase);
+
+	v->sample = dsp_rshift(sawtooth, 1) + dsp_rshift(white_noise, 3);
 	v->envelope = dsp_zero;
 	if(v->state != SYNTH_RELEASE) {
 		v->envelope = dsp_one;
@@ -107,6 +114,9 @@ synth_init(synth *syn) {
 	for(int i = 0; i < MAX_SYNTH_VOICES; ++i) {
 		/* All voices start out in release state */
 		syn->voices[i].state = SYNTH_RELEASE;
+
+		/* Initialize all white noises with different values for "variety" */
+		syn->voices[i].white_noise_generator = i;
 	}
 
 	
