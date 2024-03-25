@@ -2,7 +2,15 @@
 
 #include <string.h>
 
-static dsp_num frequency_table[NUMBER_OF_NOTES];
+/**
+ * We can't store frequencies directly, because our DSP numbers are only in the
+ * range -4 to slightly less than 4.
+ * 
+ * Instead, store the phase offset directly. This does mean that detuning might
+ * be a little weird, but it should be possible to implement that using a
+ * multiplier on the phase offset.
+*/
+static dsp_num phase_offset_table[NUMBER_OF_NOTES];
 
 void
 synth_press(synth *syn, int note) {
@@ -19,10 +27,9 @@ synth_press(synth *syn, int note) {
 	}
 
 	/* Set state and frequency. */
-	dsp_num freq = frequency_table[note];
 	syn->voices[idx].state = SYNTH_ATTACK;
 	syn->voices[idx].age = syn->next_age;
-	syn->voices[idx].phase_step = dsp_div_int_denom(freq, SAMPLE_RATE);
+	syn->voices[idx].phase_step = phase_offset_table[note];
 
 	/* Track the note */
 	syn->voices[idx].note = note;
@@ -69,7 +76,7 @@ synth_voice_process(synth_voice *v) {
 
 dsp_num
 synth_process(synth *syn) {
-	dsp_largenum suml = dsp_zero;
+	dsp_largenum suml = 0;
 
 	for(int i = 0; i < MAX_SYNTH_VOICES; ++i) {
 		synth_voice *v = &syn->voices[i];
@@ -88,9 +95,9 @@ synth_init(synth *syn) {
 	/* Start at A2? */
 	double freq = 110;
 
-	/* Initialize frequency table */
+	/* Initialize phase offset table */
 	for(int i = 0; i < NUMBER_OF_NOTES; ++i) {
-		frequency_table[i] = dsp_from_double(freq);
+		phase_offset_table[i] = dsp_from_double(freq / SAMPLE_RATE);
 		freq *= semitone;
 	}
 
@@ -101,4 +108,6 @@ synth_init(synth *syn) {
 		/* All voices start out in release state */
 		syn->voices[i].state = SYNTH_RELEASE;
 	}
+
+	
 }

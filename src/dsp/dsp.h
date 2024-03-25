@@ -150,10 +150,11 @@ dsp_div_int_num(int32_t a, dsp_num b) {
 
 static inline dsp_num
 dsp_div_int_denom(dsp_num a, int32_t b) {
-	const LARGER_T a64 = a;
+	/* If a / b < 0, we need to make a bigger first, then shift back */
+	const LARGER_T a64 = ((LARGER_T)a << DSP_POINT_IDX);
 	const LARGER_T b64 = b;
-	const LARGER_T res = a64 / b64;
-	return (dsp_num)res;
+	const LARGER_T res = (a64 / b64);
+	return (dsp_num)(res >> DSP_POINT_IDX);
 }
 
 static inline float
