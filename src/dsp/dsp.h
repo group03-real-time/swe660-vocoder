@@ -1,6 +1,8 @@
 #ifndef DSP_H
 #define DSP_H
 
+#include <stdint.h>
+
 #ifndef SAMPLE_RATE
 	#define SAMPLE_RATE 44100
 #endif
@@ -38,6 +40,16 @@ dsp_num dsp_div(dsp_num a, dsp_num b) {
 	return a / b;
 }
 
+static inline dsp_num
+dsp_div_int_num(int32_t a, dsp_num b) {
+	return a / b;
+}
+
+static inline dsp_num
+dsp_div_int_denom(dsp_num a, int32_t b) {
+	return a / b;
+}
+
 static inline
 float dsp_to_float(dsp_num f) {
 	return f;
@@ -59,18 +71,25 @@ dsp_lshift(dsp_num expr, int shift) {
 	return expr * mask;
 }
 
+static inline dsp_num
+dsp_rshift(dsp_num expr, int shift) {
+	int mask = (1 << shift);
+	return expr / mask;
+}
+
 #define dsp_zero 0.0f
+#define dsp_one  1.0f
 #define INPUT_EXTRA_MUL 1
 
 #else
-
-#include <stdint.h>
 
 //#ifdef DSP_FIXED_32
 
 #define DSP_POINT_IDX 29 /* only a handful of bits above 1.0 */
 typedef int32_t dsp_num;
 typedef int64_t dsp_largenum;
+
+#define dsp_one ((dsp_num)0x20000000)
 
 #define LARGER_T int64_t
 #define INPUT_EXTRA_MUL 1
@@ -121,6 +140,22 @@ dsp_div(dsp_num a, dsp_num b) {
 	return (dsp_num)res;
 }
 
+static inline dsp_num
+dsp_div_int_num(int32_t a, dsp_num b) {
+	const LARGER_T a64 = ((LARGER_T)a << (DSP_POINT_IDX + DSP_POINT_IDX));
+	const LARGER_T b64 = b;
+	const LARGER_T res = a64 / b64;
+	return (dsp_num)res;
+}
+
+static inline dsp_num
+dsp_div_int_denom(dsp_num a, int32_t b) {
+	const LARGER_T a64 = a;
+	const LARGER_T b64 = b;
+	const LARGER_T res = a64 / b64;
+	return (dsp_num)res;
+}
+
 static inline float
 dsp_to_float(dsp_num f) {
 	double b = (double)f;
@@ -143,6 +178,7 @@ dsp_abs(dsp_num f) {
 }
 
 #define dsp_lshift(expr, shift) ((expr) << (shift))
+#define dsp_rshift(expr, shift) ((expr) >> (shift))
 
 #define dsp_zero 0
 

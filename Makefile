@@ -17,8 +17,10 @@ SRCS=\
 	main.c\
 	menu.c\
 	offline_vocode.c\
+	offline_synth.c\
 	dsp/bpf.c\
 	dsp/vocoder.c\
+	dsp/synth.c\
 	wav/wav.c\
 	
 # List of subdirectories inside src. Needed to keep the build fast.
