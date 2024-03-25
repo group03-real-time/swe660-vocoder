@@ -15,9 +15,10 @@ static dsp_num phase_offset_table[NUMBER_OF_NOTES];
 
 #define SINC_SIZE 200
 
-/* Format: phase step, magnitude */
-static dsp_num sinc_table[SINC_SIZE][2];
-static dsp_num sinc_weight;
+/* sinc table should consist of premultiplied sinc(x) * step_size (for riemann sum) */
+static dsp_num sinc_table[SINC_SIZE];
+static dsp_num sinc_table_step;
+static dsp_num sinc_first_step;
 
 void
 synth_press(synth *syn, int note) {
@@ -88,11 +89,12 @@ phase_small_decrement(dsp_num in, dsp_num step) {
 
 static inline dsp_num
 voice_compute_waveform(synth_voice *v) {
-	const dsp_num step = v->phase_step;
-	const dsp_num half_step = dsp_rshift(step, 1);
+	const dsp_num total_step = v->phase_step;
+	const dsp_num first_step = dsp_mul(total_step, sinc_first_step);
+	const dsp_num step       = dsp_mul(total_step, sinc_table_step);
 
-	dsp_num phase_pos = phase_small_increment(v->phase, half_step);
-	dsp_num phase_neg = phase_small_decrement(v->phase, half_step);
+	dsp_num phase_pos = phase_small_increment(v->phase, first_step);
+	dsp_num phase_neg = phase_small_decrement(v->phase, first_step);
 
 	/* The sum includes the center sample with weight 1 */
 	dsp_largenum suml = sawtooth_wave(v->phase);
@@ -101,14 +103,14 @@ voice_compute_waveform(synth_voice *v) {
 		dsp_num sample1 = sawtooth_wave(phase_pos);
 		dsp_num sample2 = sawtooth_wave(phase_neg);
 
-		suml += dsp_mul_large(dsp_mul(sample1 + sample2, sinc_table[i][0]), sinc_table[i][1]);
+		suml += dsp_mul_large(sample1 + sample2, sinc_table[i]);
 
-		phase_pos = phase_small_increment(phase_pos, dsp_mul(step, sinc_table[i][0]));
-		phase_neg = phase_small_decrement(phase_neg, dsp_mul(step, sinc_table[i][0]));
+		phase_pos = phase_small_increment(phase_pos, step);
+		phase_neg = phase_small_decrement(phase_neg, step);
 	}
 
 	dsp_num sum = dsp_compact(suml);
-	return dsp_div(sum, sinc_weight);
+	return sum;//dsp_div(sum, sinc_weight);
 }
 
 void
@@ -167,17 +169,18 @@ synth_init(synth *syn) {
 
 	/* Compute sinc table */
 	double phase = 0.03;
+
+	/* first step: off from the x = 0 */
+	sinc_first_step = dsp_from_double(phase);
 	double step = 0.03;
-	double weight = 1.0;
 	for(int i = 0; i < SINC_SIZE; ++i) {
 		double y = sinc_eval(phase);
-		sinc_table[i][0] = dsp_from_double(step);
-		sinc_table[i][1] = dsp_from_double(y);
-		printf("y = %f\n", y);
-		weight += fabs(y) * 2.0;
+		double w = step; /* riemann sum: areas of rectangles, precompute this multiply */
+		sinc_table[i] = dsp_from_double(y * w);
 		phase += step;
 	}
-	sinc_weight = dsp_from_double(weight);
+	
+	sinc_table_step = dsp_from_double(step);
 
 	memset(syn, 0, sizeof(*syn));
 	syn->next_age = 1;
