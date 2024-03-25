@@ -13,7 +13,9 @@
 */
 static dsp_num phase_offset_table[NUMBER_OF_NOTES];
 
-#define SINC_SIZE 200
+#define SINC_SIZE 15
+#define SINC_PHASE_START 0.3
+#define SINC_PHASE_STEP  0.2
 
 /* sinc table should consist of premultiplied sinc(x) * step_size (for riemann sum) */
 static dsp_num sinc_table[SINC_SIZE];
@@ -127,7 +129,7 @@ synth_voice_process(synth_voice *v) {
 	const dsp_num white_noise = dsp_rshift(v->white_noise_generator, 2);
 	const dsp_num sawtooth = voice_compute_waveform(v);
 
-	v->sample = dsp_rshift(sawtooth, 1) ;//+ dsp_rshift(white_noise, 3);
+	v->sample = dsp_rshift(sawtooth, 1) + dsp_rshift(white_noise, 3);
 	v->envelope = dsp_zero;
 	if(v->state != SYNTH_RELEASE) {
 		v->envelope = dsp_one;
@@ -168,11 +170,11 @@ synth_init(synth *syn) {
 	}
 
 	/* Compute sinc table */
-	double phase = 0.03;
+	double phase = SINC_PHASE_START;
 
 	/* first step: off from the x = 0 */
 	sinc_first_step = dsp_from_double(phase);
-	double step = 0.03;
+	double step = SINC_PHASE_STEP;
 	for(int i = 0; i < SINC_SIZE; ++i) {
 		double y = sinc_eval(phase);
 		double w = step; /* riemann sum: areas of rectangles, precompute this multiply */
