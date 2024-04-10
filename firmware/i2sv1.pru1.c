@@ -9,7 +9,8 @@ volatile register unsigned int __R31;
 #define SQUARE_HIGH 0x4d677000
 #define SQUARE_LOW  0x72988fff
 
-#define HALF_BCK 32 /* 200 million / (44100 * 64) [actually tuned manually] */
+#define HALF_BCK_A 31
+#define HALF_BCK_B 32 /* 200 million / (44100 * 64) [actually tuned manually] */
 
 #define CHANNEL "uninitialized"
 
@@ -49,11 +50,11 @@ void main(void) {
 	bits = 0;
 	__R30 = 0;
 
-	__delay_cycles(HALF_BCK);
+	__delay_cycles(HALF_BCK_A);
 
 	__R30 = 2;
 
-	__delay_cycles(HALF_BCK);
+	__delay_cycles(HALF_BCK_B);
 
 	for(;;) {
 		next_sample = 0;
@@ -82,22 +83,22 @@ void main(void) {
 			/* LRCK = low, BCK = low, data = current */
 			__R30 = (__R30 & ~0x3) | bits;
 
-			__delay_cycles(HALF_BCK);
+			__delay_cycles(HALF_BCK_A);
 
 			/* Now, we need BCK high, everything else the same. */
 			//bits |= 2;
 			__R30 |= 2;
 
-			__delay_cycles(HALF_BCK);
+			__delay_cycles(HALF_BCK_B);
 		}
 
 		/* For the last bit, LRCK = high */
 		bits = 0x4 | (shift_sample & 1);
 		__R30 = (__R30 & ~0x3) | bits;
 
-		__delay_cycles(HALF_BCK);
+		__delay_cycles(HALF_BCK_A);
 		__R30 |= 2;
-		__delay_cycles(HALF_BCK);
+		__delay_cycles(HALF_BCK_B);
 
 		/* For the next 31 bits, LRCK = high */
 		shift_sample = next_sample;
@@ -112,22 +113,22 @@ void main(void) {
 			/* LRCK = low, BCK = low, data = current */
 			__R30 = (__R30 & ~0x3) | bits;
 
-			__delay_cycles(HALF_BCK);
+			__delay_cycles(HALF_BCK_A);
 
 			/* Now, we need BCK high, everything else the same. */
 			//bits |= 2;
 			__R30 |= 2;
 
-			__delay_cycles(HALF_BCK);
+			__delay_cycles(HALF_BCK_B);
 		}
 
 		/* For the last bit, LRCK = low */
 		bits = (shift_sample & 1);
 		__R30 = (__R30 & ~0x7) | bits;
 
-		__delay_cycles(HALF_BCK);
+		__delay_cycles(HALF_BCK_A);
 		__R30 |= 2;
-		__delay_cycles(HALF_BCK);
+		__delay_cycles(HALF_BCK_B);
 		//next_sample >>= 1;
 	}
 
