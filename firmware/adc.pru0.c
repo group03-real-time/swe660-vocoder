@@ -1,0 +1,100 @@
+#include <stdint.h>
+#include <pru_cfg.h>
+#include <sys_tscAdcSs.h> /* TI ADC library */
+#include "resource_table_empty.h"
+#include "prugpio.h"
+
+volatile register unsigned int __R30;
+volatile register unsigned int __R31;
+
+struct adc_sampler {
+	uint32_t magic;
+	uint32_t samples[8];
+};
+
+#define sampler ((volatile struct adc_sampler*)(0x200))
+
+#define STEPCONFIG(idx) ADC_TSC.STEPCONFIG ## idx
+#define STEPCONFIG_bit(idx) ADC_TSC.STEPCONFIG ## idx ## _bit
+#define STEPENABLE(idx) ADC_TSC.STEPENABLE_bit.STEP ## idx
+
+#define STEPDELAY(idx) ADC_TSC.STEPDELAY ## idx
+#define STEPDELAY_bit(idx) ADC_TSC.STEPDELAY ## idx ## _bit
+
+#define STEPCONFIG_FOR_APP(idx, SEL_INP_SWC_3_0_val)\
+do {\
+	STEPCONFIG(idx) = 0; /* Reset everything to 0 -- most options are zero */\
+	STEPCONFIG_bit(idx).SEL_RFM_SWC_1_0 = 3; /* VREF */\
+	STEPCONFIG_bit(idx).SEL_RFP_SWC_2_0 = 3; /* ADCREF */\
+	STEPCONFIG_bit(idx).SEL_INP_SWC_3_0 = SEL_INP_SWC_3_0_val; /* Which pin */\
+	STEPCONFIG_bit(idx).SEL_INM_SWC_3_0 = 8;/* ADCREF */\
+	STEPCONFIG_bit(idx).AVERAGING = 4; /* 16 samples */\
+	STEPCONFIG_bit(idx).MODE = 1; /* SW-enabled, continuous */\
+\
+	STEPENABLE(idx) = 1;\
+	STEPDELAY_bit(idx).OPENDELAY = 0x98; /* Standard value..? */\
+} while(0)
+
+static void config_adc() {
+	//while (!(CM_WKUP_ADC_TSC_CLKCTRL == 0x02)) {
+	//	CM_WKUP_CLKSTCTRL = 0;
+	//	CM_WKUP_ADC_TSC_CLKCTRL = 0x02;
+		/* Optional: implement timeout logic. */
+	//}
+
+	ADC_TSC.SYSCONFIG_bit.IDLEMODE = 1; /* Never idle..? */
+
+	ADC_TSC.CTRL_bit.ENABLE = 0;
+	ADC_TSC.CTRL_bit.STEPCONFIG_WRITEPROTECT_N_ACTIVE_LOW = 1;
+	ADC_TSC.ADC_CLKDIV_bit.ADC_CLKDIV = 0; /* No clock divide */
+
+	ADC_TSC.STEPENABLE = 0; /* disable all steps */
+
+	/* Setup all steps */
+	//STEPCONFIG_FOR_APP(1, 0);
+	STEPCONFIG_FOR_APP(2, 1);
+	//STEPCONFIG_FOR_APP(3, 2);
+	//STEPCONFIG_FOR_APP(4, 3);
+	//STEPCONFIG_FOR_APP(5, 4);
+	//STEPCONFIG_FOR_APP(6, 5);
+	//STEPCONFIG_FOR_APP(7, 6);
+
+	ADC_TSC.CTRL_bit.STEPCONFIG_WRITEPROTECT_N_ACTIVE_LOW = 0;
+	/* Need to store the ID tag in the fifo so we know which value was written */
+	ADC_TSC.CTRL_bit.STEP_ID_TAG = 1;
+	ADC_TSC.CTRL_bit.ENABLE = 1;
+}
+
+void main(void) {
+
+	sampler->magic = 0xBEE5BEE5;
+
+	int i;
+	for(i = 0; i < 8; ++i) {
+		sampler->samples[i] = 0xF00DF00D;
+	}
+	
+	/* Clear SYSCFG[STANDBY_INIT] to enable OCP master port */
+	CT_CFG.SYSCFG_bit.STANDBY_INIT = 0;
+
+	config_adc();
+
+	for(;;) {
+		if(ADC_TSC.FIFO0COUNT > 8) {
+			uint32_t next = ADC_TSC.FIFO0DATA;
+			uint32_t chan = (next >> 16) & 0xF;
+			uint32_t val = next & 0xFFF;
+			sampler->samples[chan] = val;
+		}
+	}
+
+	
+	__halt();
+}
+
+// Turns off triggers
+#pragma DATA_SECTION(init_pins, ".init_pins")
+#pragma RETAIN(init_pins)
+const char init_pins[] =  
+	"/sys/class/leds/beaglebone:green:usr3/trigger\0none\0" \
+	"\0\0";
