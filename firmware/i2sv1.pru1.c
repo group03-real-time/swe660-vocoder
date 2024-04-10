@@ -18,13 +18,32 @@ volatile register unsigned int __R31;
  * bck (BCK) =  bit 1 = P8_46
  * lrck       = bit 2 = P8_43 */
 
+#define BUF_SIZE 1024
+
+struct ringbuf {
+	uint32_t magic;
+	uint32_t data[BUF_SIZE];
+	uint32_t write;
+	uint32_t read;
+	uint32_t empty;
+};
+
+#define buf ((struct ringbuf *)(0x200))
+
 void main(void) {
 	uint32_t next_sample;
 	uint32_t shift_sample;
 	uint32_t bits;
 	int i;
 
-	int temporary;
+	buf->magic = 0xF00DF00D; /* Just so we can debug if it's working. */
+
+	for(i = 0; i < BUF_SIZE; ++i) {
+		buf->data[i] = 0;
+	}
+	buf->write = 0;
+	buf->read = 0;
+	buf->empty = 1;
 
 	/* Initialization: set LRCK to 0 and clock out one bit (also just 0 for safety) */
 	bits = 0;
@@ -38,23 +57,15 @@ void main(void) {
 
 	for(;;) {
 		next_sample = 0;
-		/*if(buf.read != buf.write) {
-			next_sample = buf.buf[buf.read];
-			buf.read = (buf.read + 1) % BUF_SIZE;
-		}*/
+		if(buf->read != buf->write) {
+			next_sample = buf->data[buf->read];
+			buf->read = (buf->read + 1) % BUF_SIZE;
 
-		
-		if(temporary >= 100) {
-			temporary = 0;
-		}
-		if(temporary >= 50) {
-			next_sample = SQUARE_HIGH;
+			buf->empty = 0; /* Let the userspace know it can write now */
 		}
 		else {
-			next_sample = SQUARE_LOW;
+			buf->empty = 1;
 		}
-		//printf("next sample = %x, temporary = %d\n", next_sample, temporary);
-		temporary += 1;
 
 		#undef CHANNEL
 		#define CHANNEL "left"
