@@ -37,6 +37,7 @@ void *get_pru_mapping() {
 }
 
 #define BUF_SIZE 512
+#define DESIRED_SAMPLES 16
 
 struct ringbuf {
 	uint32_t magic;
@@ -118,7 +119,7 @@ int32_t pru_read_audio() {
 	int32_t result = pru_audio_out->indata[pru_audio_out->in_read];
 	pru_audio_out->in_read = (pru_audio_out->in_read + 1) % BUF_SIZE;
 
-	result -= 2048;
+	result -= (2048 * DESIRED_SAMPLES);
 
 	return result;
 }

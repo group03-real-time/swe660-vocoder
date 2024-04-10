@@ -7,9 +7,13 @@
 volatile register unsigned int __R30;
 volatile register unsigned int __R31;
 
+#define DESIRED_SAMPLES 16
+
 struct adc_sampler {
 	uint32_t magic;
 	uint32_t audio_sample_avg;
+
+	uint32_t last_audio_sample_count;
 
 	/* set to 1 to indicate the previous sample has been read. */
 	uint32_t audio_sample_reset;
@@ -35,7 +39,7 @@ do {\
 	STEPCONFIG_bit(idx).SEL_RFP_SWC_2_0 = 3; /* ADCREF */\
 	STEPCONFIG_bit(idx).SEL_INP_SWC_3_0 = SEL_INP_SWC_3_0_val; /* Which pin */\
 	STEPCONFIG_bit(idx).SEL_INM_SWC_3_0 = 8;/* ADCREF */\
-	STEPCONFIG_bit(idx).AVERAGING = 4; /* 16 samples */\
+	STEPCONFIG_bit(idx).AVERAGING = 0; /* 16 samples */\
 	STEPCONFIG_bit(idx).MODE = 1; /* SW-enabled, continuous */\
 \
 	STEPENABLE(idx) = 1;\
@@ -59,15 +63,15 @@ static void config_adc() {
 
 	/* Setup all steps */
 	STEPCONFIG_FOR_APP(1, 0, 1);
-	STEPCONFIG_FOR_APP(2, 1, 0);
+	//STEPCONFIG_FOR_APP(2, 1, 0);
 	STEPCONFIG_FOR_APP(3, 0, 1);
-	STEPCONFIG_FOR_APP(4, 2, 0);
+	//STEPCONFIG_FOR_APP(4, 2, 0);
 	STEPCONFIG_FOR_APP(5, 0, 1);
-	STEPCONFIG_FOR_APP(6, 3, 0);
+	//STEPCONFIG_FOR_APP(6, 3, 0);
 	STEPCONFIG_FOR_APP(7, 0, 1);
-	STEPCONFIG_FOR_APP(8, 4, 0);
+	//STEPCONFIG_FOR_APP(8, 4, 0);
 	STEPCONFIG_FOR_APP(9, 0, 1);
-	STEPCONFIG_FOR_APP(10, 5, 0);
+	//STEPCONFIG_FOR_APP(10, 5, 0);
 	STEPCONFIG_FOR_APP(11, 0, 1);
 	STEPCONFIG_FOR_APP(12, 6, 0); /* Do not need val 7 */
 
@@ -111,6 +115,8 @@ void main(void) {
 			uint32_t sample = ADC_TSC.FIFO1DATA_bit.ADCDATA;
 
 			if(sampler->audio_sample_reset) {
+				sampler->last_audio_sample_count = audio_sample_count;
+
 				audio_sample_count = 0;
 				audio_sample_total = 0;
 				sampler->audio_sample_reset = 0;
@@ -119,7 +125,7 @@ void main(void) {
 			audio_sample_total += sample;
 			audio_sample_count += 1;
 
-			sampler->audio_sample_avg = audio_sample_total / audio_sample_count;
+			sampler->audio_sample_avg = (audio_sample_total * DESIRED_SAMPLES) / audio_sample_count;
 		}
 	}
 

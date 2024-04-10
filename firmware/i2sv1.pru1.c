@@ -38,6 +38,8 @@ struct adc_sampler {
 	uint32_t magic;
 	uint32_t audio_sample_avg;
 
+		uint32_t last_audio_sample_count;
+
 	/* set to 1 to indicate the previous sample has been read. */
 	uint32_t audio_sample_reset;
 	uint32_t samples[8];	

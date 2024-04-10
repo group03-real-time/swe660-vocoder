@@ -16,7 +16,7 @@ int main_prw(int argc, char **argv) {
 	wav_io record;
 
 #define SAMPLE_RATE 44100
-	wav_blank_or_die(&record, SAMPLE_RATE * 1, 1, SAMPLE_RATE);
+	wav_blank_or_die(&record, SAMPLE_RATE * 5, 1, SAMPLE_RATE);
 
 	pru_audio_prepare_reading();
 	for(uint64_t i = 0; i < record.frames; ++i) {
