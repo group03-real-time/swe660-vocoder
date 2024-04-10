@@ -28,10 +28,14 @@ int main_os(int argc, char **argv) {
 	synth syn;
 	synth_init(&syn);
 
-	int octave = 12 * 4;
+	//int octave = 12 * 4;
 
 	/* Play a note */
-	synth_press(&syn, octave);
+	//synth_press(&syn, octave);
+	synth_press(&syn, 0);
+	synth_press(&syn, 7);
+	synth_press(&syn, 12);
+	synth_press(&syn, 28);
 	uint64_t timer = SAMPLE_RATE * 2;
 
 	for(uint64_t i = 0; i < out.frames; ++i) {
@@ -42,7 +46,7 @@ int main_os(int argc, char **argv) {
 		/* After some seconds, play another note */
 		if(timer == 0) {
 			/* major fifth */
-			synth_press(&syn, octave + 7);
+			//synth_press(&syn, octave + 7);
 		}
 	}
 

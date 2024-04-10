@@ -11,7 +11,7 @@
 dsp_num
 vc_process(vocoder *v, dsp_num mod, dsp_num car) {
 	const dsp_num lerp_factor_ef    = dsp_from_double(0.008);
-	const dsp_num lerp_factor_bigef = dsp_from_double(0.0008);
+	const dsp_num lerp_factor_bigef = dsp_from_double(0.0002);
 
 	memmove(v->mod_x + 1, v->mod_x, sizeof(dsp_num) * 2);
 	memmove(v->car_x + 1, v->car_x, sizeof(dsp_num) * 2);
