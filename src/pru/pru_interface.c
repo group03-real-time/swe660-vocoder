@@ -36,14 +36,19 @@ void *get_pru_mapping() {
 	return mapping;
 }
 
-#define BUF_SIZE 1024
+#define BUF_SIZE 512
 
 struct ringbuf {
 	uint32_t magic;
+	uint32_t in_write;
+	uint32_t in_read;
 	uint32_t data[BUF_SIZE];
 	uint32_t write;
 	uint32_t read;
 	uint32_t empty;
+
+	uint32_t indata[BUF_SIZE];
+
 };
 
 static struct ringbuf *pru_audio_out = NULL;
@@ -93,4 +98,27 @@ void pru_write_audio(int32_t sample) {
 
 	pru_audio_out->data[pru_audio_out->write] = rev;
 	pru_audio_out->write = next;
+}
+
+void pru_audio_prepare_reading() {
+	get_pru_audio();
+
+	for(int i = 0; i < BUF_SIZE; ++i) {
+		pru_audio_out->indata[i] = 0;
+	}
+	pru_audio_out->in_read = pru_audio_out->in_write;
+}
+
+int32_t pru_read_audio() {
+	while(pru_audio_out->in_read == pru_audio_out->in_write) {
+		printf("waiting for data!\n");
+		sched_yield();
+	}
+
+	int32_t result = pru_audio_out->indata[pru_audio_out->in_read];
+	pru_audio_out->in_read = (pru_audio_out->in_read + 1) % BUF_SIZE;
+
+	result -= 2048;
+
+	return result;
 }

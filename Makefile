@@ -20,6 +20,7 @@ SRCS=\
 	offline_synth.c\
 	offline_vocode_synth.c\
 	pru_play_wav.c\
+	pru_record_wav.c\
 	pru/pru_interface.c\
 	dsp/bpf.c\
 	dsp/vocoder.c\

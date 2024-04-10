@@ -19,17 +19,34 @@ volatile register unsigned int __R31;
  * bck (BCK) =  bit 1 = P8_46
  * lrck       = bit 2 = P8_43 */
 
-#define BUF_SIZE 1024
+#define BUF_SIZE 512
 
 struct ringbuf {
 	uint32_t magic;
+	uint32_t in_write;
+	uint32_t in_read;
 	uint32_t data[BUF_SIZE];
 	uint32_t write;
 	uint32_t read;
 	uint32_t empty;
+
+	uint32_t indata[BUF_SIZE];
+	uint32_t magic2;
+};
+
+struct adc_sampler {
+	uint32_t magic;
+	uint32_t audio_sample_avg;
+
+	/* set to 1 to indicate the previous sample has been read. */
+	uint32_t audio_sample_reset;
+	uint32_t samples[8];	
 };
 
 #define buf ((struct ringbuf *)(0x200))
+
+/* It's on the other PRU */
+#define sampler ((struct adc_sampler*)(0x2200))
 
 void main(void) {
 	uint32_t next_sample;
@@ -38,13 +55,18 @@ void main(void) {
 	int i;
 
 	buf->magic = 0xF00DF00D; /* Just so we can debug if it's working. */
+	buf->magic2 = 0xD00FD00F;
 
 	for(i = 0; i < BUF_SIZE; ++i) {
 		buf->data[i] = 0;
+		buf->indata[i] = 0;
 	}
 	buf->write = 0;
 	buf->read = 0;
 	buf->empty = 1;
+
+	buf->in_read = 0;
+	buf->in_write = 0;
 
 	/* Initialization: set LRCK to 0 and clock out one bit (also just 0 for safety) */
 	bits = 0;
@@ -130,6 +152,14 @@ void main(void) {
 		__R30 |= 2;
 		__delay_cycles(HALF_BCK_B);
 		//next_sample >>= 1;
+
+		/* For every sample, also read an input sample */
+		uint32_t in_sample = sampler->audio_sample_avg;
+		sampler->audio_sample_reset = 1;
+
+		/* Write this to the input ring buffer */
+		buf->indata[buf->in_write] = in_sample;
+		buf->in_write = (buf->in_write + 1) % BUF_SIZE;
 	}
 
 	__halt();
