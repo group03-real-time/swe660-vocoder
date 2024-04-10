@@ -19,13 +19,15 @@ SRCS=\
 	offline_vocode.c\
 	offline_synth.c\
 	offline_vocode_synth.c\
+	pru_play_wav.c\
+	pru/pru_interface.c\
 	dsp/bpf.c\
 	dsp/vocoder.c\
 	dsp/synth.c\
 	wav/wav.c\
 	
 # List of subdirectories inside src. Needed to keep the build fast.
-SRC_DIRECTORIES=dsp wav
+SRC_DIRECTORIES=dsp wav pru
 
 # List of flags we want for the C compiler
 CFLAGS_DEFAULT=-Wall -std=gnu11 -O3 -Wno-error=unused-result -g
