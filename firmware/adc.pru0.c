@@ -9,7 +9,13 @@ volatile register unsigned int __R31;
 
 struct adc_sampler {
 	uint32_t magic;
+	uint32_t audio_sample_avg;
+
+	/* set to 1 to indicate the previous sample has been read. */
+	uint32_t audio_sample_reset;
 	uint32_t samples[8];
+
+	
 };
 
 #define sampler ((volatile struct adc_sampler*)(0x200))
@@ -21,9 +27,10 @@ struct adc_sampler {
 #define STEPDELAY(idx) ADC_TSC.STEPDELAY ## idx
 #define STEPDELAY_bit(idx) ADC_TSC.STEPDELAY ## idx ## _bit
 
-#define STEPCONFIG_FOR_APP(idx, SEL_INP_SWC_3_0_val)\
+#define STEPCONFIG_FOR_APP(idx, SEL_INP_SWC_3_0_val, FIFO_SELECT_val)\
 do {\
 	STEPCONFIG(idx) = 0; /* Reset everything to 0 -- most options are zero */\
+	STEPCONFIG_bit(idx).FIFO_SELECT = FIFO_SELECT_val; /* Choose FIFO */\
 	STEPCONFIG_bit(idx).SEL_RFM_SWC_1_0 = 3; /* VREF */\
 	STEPCONFIG_bit(idx).SEL_RFP_SWC_2_0 = 3; /* ADCREF */\
 	STEPCONFIG_bit(idx).SEL_INP_SWC_3_0 = SEL_INP_SWC_3_0_val; /* Which pin */\
@@ -51,13 +58,18 @@ static void config_adc() {
 	ADC_TSC.STEPENABLE = 0; /* disable all steps */
 
 	/* Setup all steps */
-	//STEPCONFIG_FOR_APP(1, 0);
-	STEPCONFIG_FOR_APP(2, 1);
-	//STEPCONFIG_FOR_APP(3, 2);
-	//STEPCONFIG_FOR_APP(4, 3);
-	//STEPCONFIG_FOR_APP(5, 4);
-	//STEPCONFIG_FOR_APP(6, 5);
-	//STEPCONFIG_FOR_APP(7, 6);
+	STEPCONFIG_FOR_APP(1, 0, 1);
+	STEPCONFIG_FOR_APP(2, 1, 0);
+	STEPCONFIG_FOR_APP(3, 0, 1);
+	STEPCONFIG_FOR_APP(4, 2, 0);
+	STEPCONFIG_FOR_APP(5, 0, 1);
+	STEPCONFIG_FOR_APP(6, 3, 0);
+	STEPCONFIG_FOR_APP(7, 0, 1);
+	STEPCONFIG_FOR_APP(8, 4, 0);
+	STEPCONFIG_FOR_APP(9, 0, 1);
+	STEPCONFIG_FOR_APP(10, 5, 0);
+	STEPCONFIG_FOR_APP(11, 0, 1);
+	STEPCONFIG_FOR_APP(12, 6, 0); /* Do not need val 7 */
 
 	ADC_TSC.CTRL_bit.STEPCONFIG_WRITEPROTECT_N_ACTIVE_LOW = 0;
 	/* Need to store the ID tag in the fifo so we know which value was written */
@@ -67,12 +79,19 @@ static void config_adc() {
 
 void main(void) {
 
+	/* For AIN0 (the microphone), the samples are averaged over time until
+	 * the other PRU reads them. This ensures that we get a low-pass filtered
+	 * signal that should be at least reasonably good. */
+	uint32_t audio_sample_count = 0;
+	uint32_t audio_sample_total = 0;
+
 	sampler->magic = 0xBEE5BEE5;
 
 	int i;
 	for(i = 0; i < 8; ++i) {
-		sampler->samples[i] = 0xF00DF00D;
+		sampler->samples[i] = 0;
 	}
+	sampler->audio_sample_avg = 0;
 	
 	/* Clear SYSCFG[STANDBY_INIT] to enable OCP master port */
 	CT_CFG.SYSCFG_bit.STANDBY_INIT = 0;
@@ -80,11 +99,27 @@ void main(void) {
 	config_adc();
 
 	for(;;) {
-		if(ADC_TSC.FIFO0COUNT > 8) {
+		if(ADC_TSC.FIFO0COUNT > 0) {
 			uint32_t next = ADC_TSC.FIFO0DATA;
 			uint32_t chan = (next >> 16) & 0xF;
 			uint32_t val = next & 0xFFF;
 			sampler->samples[chan] = val;
+		}
+
+		if(ADC_TSC.FIFO1COUNT > 0) {
+			/* Don't need the channel as this is always channel 0. */
+			uint32_t sample = ADC_TSC.FIFO1DATA_bit.ADCDATA;
+
+			if(sampler->audio_sample_reset) {
+				audio_sample_count = 0;
+				audio_sample_total = 0;
+				sampler->audio_sample_reset = 0;
+			}
+
+			audio_sample_total += sample;
+			audio_sample_count += 1;
+
+			sampler->audio_sample_avg = audio_sample_total / audio_sample_count;
 		}
 	}
 
