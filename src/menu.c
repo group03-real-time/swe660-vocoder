@@ -15,6 +15,8 @@ extern int main_ovs(int argc, char **argv);
 extern int main_ppw(int argc, char **argv);
 extern int main_prw(int argc, char **argv);
 
+extern int main_bg(int argc, char **argv);
+
 extern int main_app(int argc, char **argv);
 
 int
@@ -46,6 +48,10 @@ main(int argc, char **argv) {
 
 	if(!strcmp(argv[1], "-prw")) {
 		return main_prw(argc, argv);
+	}
+
+	if(!strcmp(argv[1], "-bg")) {
+		return main_bg(argc, argv);
 	}
 
 	printf("error: unknown option %s. available options are: -ov, -os, -ovs", argv[1]);
