@@ -27,15 +27,16 @@ void main(void) {
 	int i;
 
 	buf->magic = 0xF00DF00D; /* Just so we can debug if it's working. */
-	buf->magic2 = 0xD00FD00F;
 
-	for(i = 0; i < AUDIO_RINGBUF_SIZE; ++i) {
-		buf->data[i] = 0;
-		buf->indata[i] = 0;
+	for(i = 0; i < AUDIO_OUT_RINGBUF_SIZE; ++i) {
+		buf->out_data[i] = 0;
 	}
-	buf->write = 0;
-	buf->read = 0;
-	buf->empty = 1;
+	for(i = 0; i < AUDIO_IN_RINGBUF_SIZE; ++i) {
+		buf->in_data[i] = 0;
+	}
+	buf->out_write = 0;
+	buf->out_read = 0;
+	buf->out_empty = 1;
 
 	buf->in_read = 0;
 	buf->in_write = 0;
@@ -52,14 +53,14 @@ void main(void) {
 
 	for(;;) {
 		next_sample = 0;
-		if(buf->read != buf->write) {
-			next_sample = buf->data[buf->read];
-			buf->read = (buf->read + 1) % AUDIO_RINGBUF_SIZE;
+		if(buf->out_read != buf->out_write) {
+			next_sample = buf->out_data[buf->out_read];
+			buf->out_read = (buf->out_read + 1) % AUDIO_OUT_RINGBUF_SIZE;
 
-			buf->empty = 0; /* Let the userspace know it can write now */
+			buf->out_empty = 0; /* Let the userspace know it can write now */
 		}
 		else {
-			buf->empty = 1;
+			buf->out_empty = 1;
 		}
 
 		shift_sample = next_sample;
@@ -123,8 +124,8 @@ void main(void) {
 		sampler->audio_sample_reset = 1;
 
 		/* Write this to the input ring buffer */
-		buf->indata[buf->in_write] = in_sample;
-		buf->in_write = (buf->in_write + 1) % AUDIO_RINGBUF_SIZE;
+		buf->in_data[buf->in_write] = in_sample;
+		buf->in_write = (buf->in_write + 1) % AUDIO_IN_RINGBUF_SIZE;
 	}
 
 	__halt();

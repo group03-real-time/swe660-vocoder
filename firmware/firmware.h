@@ -6,7 +6,8 @@
 
 #include <stdint.h>
 
-#define AUDIO_RINGBUF_SIZE 512
+#define AUDIO_OUT_RINGBUF_SIZE 512
+#define AUDIO_IN_RINGBUF_SIZE  512
 
 /* Essentially, because the audio sampling is done over several samples,
  * but the count is nondeterministic, we want to fix it to a final count.
@@ -31,13 +32,11 @@ struct pru1_ds {
 	uint32_t magic;
 	uint32_t in_write;
 	uint32_t in_read;
-	uint32_t data[AUDIO_RINGBUF_SIZE];
-	uint32_t write;
-	uint32_t read;
-	uint32_t empty;
-
-	uint32_t indata[AUDIO_RINGBUF_SIZE];
-	uint32_t magic2;
+	uint32_t out_read;
+	uint32_t out_write;
+	uint32_t out_empty;
+	uint32_t in_data[AUDIO_IN_RINGBUF_SIZE];
+	uint32_t out_data[AUDIO_OUT_RINGBUF_SIZE];
 };
 
 /* We put the data structures at 0x200 in each PRU, as the first 0x200 bytes
