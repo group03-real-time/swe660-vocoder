@@ -4,9 +4,9 @@
 
 #include <unistd.h>
 #include <fcntl.h>
-#include <sys/mman.h>
 
 #include "app.h"
+#include "mmap.h"
 
 /* Memory addresses for all the GPIO registers. These are copied from the
  * AM335X Technical Reference Manual, pp. 173-185.
@@ -66,9 +66,7 @@ static int32_t gpio_refcounts[4] = {0};
  * This is a lookup table for the GPIO_START for each register set (0, 1, 2, 3).
  * Needed to elegantly mmap those addresses.
  */
-static const off_t gpio_start_addresses[4] = { GPIO0_START, GPIO1_START, GPIO2_START, GPIO3_START };
-
-static volatile void *adc_address = NULL;
+static const uintptr_t gpio_start_addresses[4] = { GPIO0_START, GPIO1_START, GPIO2_START, GPIO3_START };
 
 /** 
  * We need to open() /dev/mem in order to use the memory mapped registers.
@@ -77,14 +75,9 @@ static volatile void *adc_address = NULL;
 static int_fd dev_mem_fd = -1;
 
 void
-gpio_get_devmem() {
-	/* If we don't have an FD for /dev/mem, we need to obtain one. */
-	if(dev_mem_fd < 0) {
-		dev_mem_fd = open("/dev/mem", O_RDWR);
-
-		if(dev_mem_fd < 0) {
-			app_fatal_error("could not open /dev/mem fd for memory mapped IO");
-		}
+gpio_init() {
+	for(int i = 0; i < 4; ++i) {
+		gpio_addresses[i] = mmap_get_mapping(gpio_start_addresses[i], GPIO_LENGTH);
 	}
 }
 
@@ -94,63 +87,7 @@ gpio_get_devmem() {
  */
 static volatile void*
 gpio_get_mapping(int32_t index) {
-	/* First, increment refcount always. */
-	gpio_refcounts[index] += 1;
-
-	/* If we've already mmap'd the address, we're done. */
-	if(gpio_addresses[index] != NULL) {
-		return gpio_addresses[index];
-	}
-
-	gpio_get_devmem();
-
-	/* Try to obtain the mapping. */
-	void *mapping = mmap(NULL, GPIO_LENGTH, 
-		PROT_READ | PROT_WRITE, /* Need to read and write. */
-		MAP_SHARED,             /* We want all our changes to /dev/mem to be visible. */
-		dev_mem_fd,             /* Write to /dev/mem, so that we can write to specific memory addresses. */
-		gpio_start_addresses[index]); /* The offset inside /dev/mem is given by this table. */
-
-	/* Fatal error if we can't map. */
-	if(!mapping) {
-		app_fatal_error("could not mmap for memory mapped IO");
-	}
-
-	/* Keep track of the mapped address and return the mapping. */
-	gpio_addresses[index] = mapping;
-	return mapping;
-}
-
-/**
- * Helper function to stop using the mapping for a given index. Decreases
- * the refcount and cleans up if necessary.
- */
-static void
-gpio_release_mapping(int32_t index) {
-	/* Decrease refcount. */
-	gpio_refcounts[index] -= 1;
-
-	/* If there's no more references... */
-	if(gpio_refcounts[index] <= 0) {
-
-		/* Unmap the address. */
-		if(gpio_addresses[index] != NULL) {
-			munmap((void*)gpio_addresses[index], GPIO_LENGTH);
-			gpio_addresses[index] = NULL;
-		}
-
-		/* Now check if we need to clean up the fd. */
-		if(dev_mem_fd > -1) {
-			/* If all the gpio addresses are NULL, we should clean it up. */
-			for(int32_t i = 0; i < 4; ++i) {
-				if(gpio_addresses[i] != NULL) return;
-			}
-
-			/* Close the FD -- it was > -1, but all the addresses were NULL. */
-			close(dev_mem_fd);
-			dev_mem_fd = -1;
-		}
-	}
+	return gpio_addresses[index];
 }
 
 gpio_pin
@@ -210,48 +147,6 @@ gpio_read(gpio_pin pin) {
 
 void
 gpio_close(gpio_pin pin) {
-	/* In order to keep the pin "lean" for actually writing to the GPIO...
-	 * let's just loop through the addresses, find the one that matches, and
-	 * release that one. */
-
-	/* Note this only works because the addresses are increasing in value. */
-
-	/* The location of the DATAIN or DATAOUT should be > than it's start address */
-	uintptr_t target = (uintptr_t)(pin.data_ptr);
-
-	for(int32_t i = 0; i < 4; ++i) {
-		/* If we find a gpio_start_address that is below the dataout pointer... */
-		if(target > (uintptr_t)gpio_start_addresses[i]) {
-			/* Then we've found our start address, and release that mapping. */
-			gpio_release_mapping(i);
-			return;
-		}
-	}
-}
-
-#define ADC_LENGTH 4096
-#define ADC_START  0x44E0D000 
-
-#define ADC_STEPCONFIG1 0x68
-#define ADC_STEPDELAY1  0x6C
-
-void
-gpio_analog_open() {
-	gpio_get_devmem();
-
-	if(!adc_address) {
-		adc_address = mmap(NULL, ADC_LENGTH, 
-		PROT_READ | PROT_WRITE, /* Need to read and write. */
-		MAP_SHARED,             /* We want all our changes to /dev/mem to be visible. */
-		dev_mem_fd,             /* Write to /dev/mem, so that we can write to specific memory addresses. */
-		ADC_START); 
-
-		if(!adc_address) {
-			app_fatal_error("could not open adc");
-		}
-	}
-
-
 }
 
 #endif /* USE_MMAP_GPIO */

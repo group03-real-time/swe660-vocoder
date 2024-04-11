@@ -6,6 +6,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <stddef.h>
 
 /* Typedef for file descriptors, for two reasons:
  * 1. Makes MISRA slightly happier.

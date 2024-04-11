@@ -42,6 +42,8 @@ gpio_close(gpio_pin pin) {
 	/* no-op */
 }
 
+void gpio_init(){}
+
 #else /* EMULATOR */
 
 #ifndef USE_MMAP_GPIO /* If we're using mmap, we need to avoid defining the functions in this file. */
@@ -114,10 +116,9 @@ gpio_close(gpio_pin pin) {
 	close(pin.fd);
 }
 
+void gpio_init(){}
+
 #endif /* USE_MMAP_GPIO */
 
 #endif /* EMULATOR */
-
-
-
 

@@ -2,7 +2,6 @@
 
 #include <unistd.h>
 #include <fcntl.h>
-#include <sys/mman.h>
 
 #include <stdio.h>
 #include <string.h>
@@ -10,31 +9,11 @@
 #include <sched.h>
 
 #include "../app.h"
+#include "../mmap.h"
 
 #define PRU_START 0x4A300000
 #define PRU_END   0x4A37FFFF
 #define PRU_SIZE (PRU_END - PRU_START) + 1
-
-/* TODO: Share file descriptors with mmap, and cleanup, and so forth */
-void *get_pru_mapping() {
-	int fd = open("/dev/mem", O_SYNC | O_RDWR);
-
-	if(fd < 0) {
-		app_fatal_error("pru: could not open /dev/mem. try with sudo?");
-	}
-
-	void *mapping = mmap(NULL, PRU_SIZE, 
-		PROT_READ | PROT_WRITE, /* Need to read and write. */
-		MAP_SHARED,             /* We want all our changes to /dev/mem to be visible. */
-		fd,             /* Write to /dev/mem, so that we can write to specific memory addresses. */
-		PRU_START);
-
-	if(mapping == NULL) {
-		app_fatal_error("pru: could not mmap pru memory.");
-	} 
-	
-	return mapping;
-}
 
 #define BUF_SIZE 512
 #define DESIRED_SAMPLES 16
@@ -54,22 +33,21 @@ struct ringbuf {
 
 static struct ringbuf *pru_audio_out = NULL;
 
-void get_pru_audio() {
-	if(pru_audio_out == NULL) {
-		unsigned char *base = get_pru_mapping();
+void pru_init() {
+	unsigned char *base = mmap_get_mapping(PRU_START, PRU_SIZE);
+	if(!base) {
+		app_fatal_error("could not get PRU mmap'd IO");
+	}
+	pru_audio_out = (void*)(base + 0x2200);
 
-		printf("got PRU mapping @ %p\n", base);
-
-		pru_audio_out = (void*)(base + 0x2200); /* It's on PRU1, 0x200 bytes in */
-
-		printf("pru_audio_out = %p\n", pru_audio_out);
-		printf("magic = %x\n", pru_audio_out->magic);
+	uint32_t magic = pru_audio_out->magic;
+	uint32_t correct_magic = 0xF00DF00D; /* TODO: Sync thru headers */
+	if(magic != correct_magic) {
+		app_fatal_error("PRU 1 magic number is wrong. The firmware may not be installed correctly.");
 	}
 }
 
 void pru_audio_prepare_latency() {
-	get_pru_audio();
-
 	for(int i = 0; i < BUF_SIZE; ++i) {
 		pru_audio_out->data[i] = 0;
 	}
@@ -77,9 +55,6 @@ void pru_audio_prepare_latency() {
 }
 
 void pru_write_audio(int32_t sample) {
-	get_pru_audio();
-
-	
 
 	uint32_t u;
 	memcpy(&u, &sample, sizeof(u));
@@ -102,8 +77,6 @@ void pru_write_audio(int32_t sample) {
 }
 
 void pru_audio_prepare_reading() {
-	get_pru_audio();
-
 	for(int i = 0; i < BUF_SIZE; ++i) {
 		pru_audio_out->indata[i] = 0;
 	}
