@@ -2,52 +2,23 @@
 #include <pru_cfg.h>
 #include "resource_table_empty.h"
 
+#include "firmware.h"
+
 volatile register unsigned int __R30;
 volatile register unsigned int __R31;
 
-#define SQUARE_HIGH 0x4d677000
-#define SQUARE_LOW  0x72988fff
-
 #define HALF_BCK_A 31
 #define HALF_BCK_B 32 /* 200 million / (44100 * 64) [actually tuned manually] */
-
-#define CHANNEL "uninitialized"
 
 /* Pin mapping:
  * data (DIN) = bit 0 = P8_45
  * bck (BCK) =  bit 1 = P8_46
  * lrck       = bit 2 = P8_43 */
 
-#define BUF_SIZE 512
-
-struct ringbuf {
-	uint32_t magic;
-	uint32_t in_write;
-	uint32_t in_read;
-	uint32_t data[BUF_SIZE];
-	uint32_t write;
-	uint32_t read;
-	uint32_t empty;
-
-	uint32_t indata[BUF_SIZE];
-	uint32_t magic2;
-};
-
-struct adc_sampler {
-	uint32_t magic;
-	uint32_t audio_sample_avg;
-
-		uint32_t last_audio_sample_count;
-
-	/* set to 1 to indicate the previous sample has been read. */
-	uint32_t audio_sample_reset;
-	uint32_t samples[8];	
-};
-
-#define buf ((struct ringbuf *)(0x200))
+#define buf ((struct pru1_ds *)(0x200))
 
 /* It's on the other PRU */
-#define sampler ((struct adc_sampler*)(0x2200))
+#define sampler ((struct pru0_ds *)(0x2200))
 
 void main(void) {
 	uint32_t next_sample;
@@ -58,7 +29,7 @@ void main(void) {
 	buf->magic = 0xF00DF00D; /* Just so we can debug if it's working. */
 	buf->magic2 = 0xD00FD00F;
 
-	for(i = 0; i < BUF_SIZE; ++i) {
+	for(i = 0; i < AUDIO_RINGBUF_SIZE; ++i) {
 		buf->data[i] = 0;
 		buf->indata[i] = 0;
 	}
@@ -83,17 +54,13 @@ void main(void) {
 		next_sample = 0;
 		if(buf->read != buf->write) {
 			next_sample = buf->data[buf->read];
-			buf->read = (buf->read + 1) % BUF_SIZE;
+			buf->read = (buf->read + 1) % AUDIO_RINGBUF_SIZE;
 
 			buf->empty = 0; /* Let the userspace know it can write now */
 		}
 		else {
 			buf->empty = 1;
 		}
-
-		#undef CHANNEL
-		#define CHANNEL "left"
-
 
 		shift_sample = next_sample;
 
@@ -126,9 +93,6 @@ void main(void) {
 		/* For the next 31 bits, LRCK = high */
 		shift_sample = next_sample;
 
-		#undef CHANNEL
-		#define CHANNEL "right"
-
 		for(i = 0; i < 31; ++i) {
 			bits = shift_sample & 1;
 			shift_sample >>= 1;
@@ -160,7 +124,7 @@ void main(void) {
 
 		/* Write this to the input ring buffer */
 		buf->indata[buf->in_write] = in_sample;
-		buf->in_write = (buf->in_write + 1) % BUF_SIZE;
+		buf->in_write = (buf->in_write + 1) % AUDIO_RINGBUF_SIZE;
 	}
 
 	__halt();

@@ -3,25 +3,12 @@
 #include <sys_tscAdcSs.h> /* TI ADC library */
 #include "resource_table_empty.h"
 
+#include "firmware.h"
+
 volatile register unsigned int __R30;
 volatile register unsigned int __R31;
 
-#define DESIRED_SAMPLES 16
-
-struct adc_sampler {
-	uint32_t magic;
-	uint32_t audio_sample_avg;
-
-	uint32_t last_audio_sample_count;
-
-	/* set to 1 to indicate the previous sample has been read. */
-	uint32_t audio_sample_reset;
-	uint32_t samples[8];
-
-	
-};
-
-#define sampler ((volatile struct adc_sampler*)(0x200))
+#define sampler ((volatile struct pru0_ds*)(0x200))
 
 #define STEPCONFIG(idx) ADC_TSC.STEPCONFIG ## idx
 #define STEPCONFIG_bit(idx) ADC_TSC.STEPCONFIG ## idx ## _bit
@@ -124,7 +111,7 @@ void main(void) {
 			audio_sample_total += sample;
 			audio_sample_count += 1;
 
-			sampler->audio_sample_avg = (audio_sample_total * DESIRED_SAMPLES) / audio_sample_count;
+			sampler->audio_sample_avg = (audio_sample_total * AUDIO_VIRTUAL_SAMPLECOUNT) / audio_sample_count;
 		}
 	}
 

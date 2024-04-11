@@ -33,7 +33,7 @@ SRCS=\
 SRC_DIRECTORIES=dsp wav pru
 
 # List of flags we want for the C compiler
-CFLAGS_DEFAULT=-Wall -std=gnu11 -O3 -Wno-error=unused-result -g
+CFLAGS_DEFAULT=-Wall -std=gnu11 -O3 -Wno-error=unused-result -g -I.
 LDFLAGS_DEFAULT=-lm
 
 # The default SSH target, or whatever, for the beaglebone. Can be overridden
