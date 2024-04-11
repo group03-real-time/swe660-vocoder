@@ -16,6 +16,7 @@ SRCS=\
 	good_user_input.c\
 	main.c\
 	menu.c\
+	hardware.c\
 	offline_vocode.c\
 	offline_synth.c\
 	offline_vocode_synth.c\
@@ -122,8 +123,8 @@ else
 	echo "pidof curprogram | xargs kill; rm -f ~/curprogram; cp ~/$$(TARGET_$(1)) ~/curprogram; ~/curprogram &> /dev/null < /dev/null & exit" | ssh $(BEAGLEBONE_SSH)
 endif
 
-scp-$(1): $$(TARGET_$(1))
-	scp $$< $(BEAGLEBONE_SSH):~
+scp-$(1): $$(TARGET_$(1)) $(PRU_TARGETS)
+	scp $$^ $(BEAGLEBONE_SSH):~
 
 endef
 

@@ -19,8 +19,15 @@ extern int main_bg(int argc, char **argv);
 
 extern int main_app(int argc, char **argv);
 
+extern void hardware_init();
+
 int
 main(int argc, char **argv) {
+#ifdef HARDWARE
+	/* Ensure PRU's (and mmap) is initialized when we're on the hardware. */
+	hardware_init();
+#endif
+
 	if(argc <= 1) {
 #ifdef HARDWARE
 		main_app(argc, argv);
