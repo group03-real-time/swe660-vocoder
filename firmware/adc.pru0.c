@@ -2,7 +2,6 @@
 #include <pru_cfg.h>
 #include <sys_tscAdcSs.h> /* TI ADC library */
 #include "resource_table_empty.h"
-#include "prugpio.h"
 
 volatile register unsigned int __R30;
 volatile register unsigned int __R31;

@@ -21,6 +21,7 @@ SRCS=\
 	offline_vocode_synth.c\
 	pru_play_wav.c\
 	pru_record_wav.c\
+	2x2_button_grid.c\
 	pru/pru_interface.c\
 	dsp/bpf.c\
 	dsp/vocoder.c\
@@ -42,7 +43,7 @@ BEAGLEBONE_SSH?=debian@192.168.7.2
 # What follows is the actual "implementation" of the makefile.
 
 # Phony targets: do not correspond to real files. Used to provide little commands.
-.PHONY: help all clean ssh conf-qemu conf-bbb conf-bbb-cross conf-qemu-and-cross
+.PHONY: help all clean ssh conf-qemu conf-bbb conf-bbb-cross conf-qemu-and-cross firmware clean-firmware
 
 # If we don't have a config.mk: Build three configurations:
 # 1) for qemu
@@ -63,9 +64,47 @@ BUILDS?=default
 endif
 TARGETS=$(BUILDS:%=$(TARGET)-%)
 
+PRU_SOURCES=adc.pru0.c i2sv1.pru1.c
+PRU_HEADERS=
+
+PRU_BUILD_DIR=build-firmware
+
+PRU_TARGETS=$(PRU_SOURCES:%.c=vocoder-%.firmware)
+
+PRU_CGT?=/usr
+PRU_SUPPORT?=/usr/lib/ti/pru-software-support-package-v6.0
+
+PRU_CC=$(PRU_CGT)/bin/clpru
+PRU_LD=$(PRU_CGT)/bin/lnkpru
+
+PRU_CFLAGS=--include_path=$(PRU_SUPPORT)/include \
+   --include_path=$(PRU_SUPPORT)/include/am335x \
+   --include_path=$(PRU_CGT)/include \
+   -v3 -O2 --printf_support=minimal --display_error_number --endian=little --hardware_mac=on \
+   --obj_directory=$(PRU_BUILD_DIR) --pp_directory=$(PRU_BUILD_DIR) --asm_directory=$(PRU_BUILD_DIR) -ppd -ppa --asm_listing \
+   --c_src_interlist
+
+PRU_LDFLAGS=--reread_libs --warn_sections --stack_size=0x100 --heap_size=0x100  \
+   -i$(PRU_CGT)/lib -i$(PRU_CGT)/include firmware/am335x_pru.cmd --library=libc.a \
+   --library=$(PRU_SUPPORT)/lib/rpmsg_lib.lib
+
 # The top-level build rule / PHONY target all -- just corresponds to building
 # the final executable. Used to make it clear where the rules begin.
-all: $(TARGETS)
+all: $(TARGETS) firmware
+
+firmware: $(PRU_TARGETS)
+
+clean-firmware:
+	rm -rf $(PRU_BUILD_DIR)
+	rm -f $(PRU_TARGETS)
+
+# Build rule for PRU firmware
+vocoder-%.firmware: firmware/%.c | $(PRU_BUILD_DIR)
+	$(PRU_CC) -fe $(PRU_BUILD_DIR)/%.o $< $(PRU_CFLAGS)
+	$(PRU_LD) -o $@ $(PRU_BUILD_DIR)/%.o $(PRU_LDFLAGS)
+
+$(PRU_BUILD_DIR):
+	mkdir -p $@
 
 define RUN_CROSS_template = 
 
@@ -171,7 +210,7 @@ $(foreach build,$(BUILDS),$(eval $(call BUILD_template,$(build))))
 # make clean cleans all the built files.
 # Just rm -rf them all. this is necessary so rm doesn't complain if we've already
 # cleaned something.
-clean: 
+clean: clean-firmware
 	rm -rf build-*
 	rm -f $(TARGETS)
 
