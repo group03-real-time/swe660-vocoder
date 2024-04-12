@@ -129,7 +129,7 @@ synth_voice_process(synth_voice *v) {
 	const dsp_num white_noise = dsp_rshift(v->white_noise_generator, 2);
 	const dsp_num sawtooth = voice_compute_waveform(v);
 
-	v->sample = dsp_rshift(sawtooth, 1) + dsp_rshift(white_noise, 3);
+	v->sample = dsp_rshift(sawtooth, 1) + dsp_rshift(white_noise, 5);
 	v->envelope = dsp_zero;
 	if(v->state != SYNTH_RELEASE) {
 		v->envelope = dsp_one;

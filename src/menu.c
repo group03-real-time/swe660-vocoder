@@ -30,7 +30,7 @@ main(int argc, char **argv) {
 
 	if(argc <= 1) {
 #ifdef HARDWARE
-		main_app(argc, argv);
+		return main_app(argc, argv);
 #else
 		puts("not on hardware: you must specify -ov, -os, -ovs, or -ppw");
 		return 1;

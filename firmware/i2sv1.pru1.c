@@ -31,11 +31,8 @@ void main(void) {
 
 	buf->magic = PRU1_MAGIC_NUMBER; /* Used to detect if the PRU is running properly. */
 
-	for(i = 0; i < AUDIO_OUT_RINGBUF_SIZE; ++i) {
-		buf->out_data[i] = 0;
-	}
-	for(i = 0; i < AUDIO_IN_RINGBUF_SIZE; ++i) {
-		buf->in_data[i] = 0;
+	for(i = 0; i < AUDIO_TOTAL_SIZE; ++i) {
+		buf->all_data[i] = 0;
 	}
 	buf->out_write = 0;
 	buf->out_read = 0;
@@ -57,7 +54,7 @@ void main(void) {
 	for(;;) {
 		next_sample = 0;
 		if(buf->out_read != buf->out_write) {
-			next_sample = buf->out_data[buf->out_read];
+			next_sample = buf->all_data[buf->out_read];
 			//buf->out_data[buf->out_read] = 0;
 			buf->out_read = (buf->out_read + 1) % AUDIO_OUT_RINGBUF_SIZE;
 
@@ -100,7 +97,7 @@ void main(void) {
 		sampler->audio_sample_reset = 1;
 
 		/* Write this to the input ring buffer */
-		buf->in_data[buf->in_write] = in_sample;
+		buf->all_data[AUDIO_OUT_RINGBUF_SIZE + buf->in_write] = in_sample;
 		buf->in_write = (buf->in_write + 1) % AUDIO_IN_RINGBUF_SIZE;
 
 		/* For the next 31 bits, LRCK = high */

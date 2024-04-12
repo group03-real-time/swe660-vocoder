@@ -112,7 +112,7 @@ pru_init() {
 void
 pru_audio_prepare_latency() {
 	for(int i = 0; i < AUDIO_OUT_RINGBUF_SIZE; ++i) {
-		pru_audio->out_data[i] = 0;
+		pru_audio->all_data[i] = 0;
 	}
 	pru_audio->out_write = (pru_audio->out_read + AUDIO_OUT_RINGBUF_SIZE - 1) % AUDIO_OUT_RINGBUF_SIZE;
 }
@@ -135,24 +135,24 @@ void pru_write_audio(int32_t sample) {
 		//printf("empty = %d\n", pru_audio->empty);
 	}
 
-	pru_audio->out_data[pru_audio->out_write] = rev;
+	pru_audio->all_data[pru_audio->out_write] = rev;
 	pru_audio->out_write = next;
 }
 
 void pru_audio_prepare_reading() {
 	for(int i = 0; i < AUDIO_IN_RINGBUF_SIZE; ++i) {
-		pru_audio->in_data[i] = 0;
+		pru_audio->all_data[AUDIO_OUT_RINGBUF_SIZE + i] = 0;
 	}
-	pru_audio->in_read = pru_audio->in_write;
+	pru_audio->in_read = (pru_audio->in_write + 1) % AUDIO_IN_RINGBUF_SIZE;
 }
 
 int32_t pru_read_audio() {
 	while(pru_audio->in_read == pru_audio->in_write) {
-		printf("waiting for data!\n");
+		//printf("waiting for data!\n");
 		sched_yield();
 	}
 
-	int32_t result = pru_audio->in_data[pru_audio->in_read];
+	int32_t result = pru_audio->all_data[AUDIO_OUT_RINGBUF_SIZE + pru_audio->in_read];
 	pru_audio->in_read = (pru_audio->in_read + 1) % AUDIO_IN_RINGBUF_SIZE;
 
 	result -= (2048 * AUDIO_VIRTUAL_SAMPLECOUNT);
