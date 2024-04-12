@@ -8,11 +8,7 @@
 #include "dsp/vocoder.h"
 #include "dsp/synth.h"
 
-extern void pru_audio_prepare_latency();
-extern void pru_write_audio(int32_t sample);
-
-void pru_audio_prepare_reading();
-int32_t pru_read_audio();
+#include "pru/pru_interface.h"
 
 int
 main_app(int argc, char **argv) {
@@ -33,13 +29,13 @@ main_app(int argc, char **argv) {
 	synth_press(&syn, 12);
 	synth_press(&syn, 28);
 
-	pru_audio_prepare_latency();
+	pru_audio_prepare_writing();
 	pru_audio_prepare_reading();
 
 	//int i = 0;
 
 	while(app_running) {
-		uint32_t modulator = pru_read_audio() * 1024;
+		uint32_t modulator = pru_audio_read() * 1024;
 
 		dsp_num carrier = synth_process(&syn);
 
@@ -48,7 +44,7 @@ main_app(int argc, char **argv) {
 		//if(i == 200) { i = 0; printf("got data %d => %d\n", modulator, out); }
 		//i++;
 
-		pru_write_audio(out);
+		pru_audio_write(out);
 	}
 
 	return 0;

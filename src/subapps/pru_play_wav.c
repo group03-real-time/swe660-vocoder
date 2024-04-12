@@ -1,9 +1,7 @@
 #include <stdio.h>
 
 #include "wav/wav.h"
-
-extern void pru_audio_prepare_latency();
-extern void pru_write_audio(int32_t sample);
+#include "pru/pru_interface.h"
 
 int main_ppw(int argc, char **argv) {
 	if(argc < 3) {
@@ -17,7 +15,7 @@ int main_ppw(int argc, char **argv) {
 
 	wav_read_or_die(&play, play_fp);
 
-	pru_audio_prepare_latency();
+	pru_audio_prepare_writing();
 	uint64_t frame = 0;
 	for(uint64_t i = 0; i < play.frames; ++i) {
 		int32_t sample = play.buffer[frame];
@@ -26,7 +24,7 @@ int main_ppw(int argc, char **argv) {
 		/* For now: Make samples quiet */
 		//sample >>= 5;
 
-		pru_write_audio(sample);
+		pru_audio_write(sample);
 	}
 
 	return 0;
