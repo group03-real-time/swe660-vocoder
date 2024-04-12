@@ -10,6 +10,9 @@ volatile register unsigned int __R31;
 #define HALF_BCK_A 31
 #define HALF_BCK_B 32 /* 200 million / (44100 * 64) [actually tuned manually] */
 
+/* A smaller delay for when we do something expensive before the next thing */
+#define HALF_BCK_C 26
+
 /* Pin mapping:
  * data (DIN) = bit 0 = P8_45
  * bck (BCK) =  bit 1 = P8_46
@@ -55,6 +58,7 @@ void main(void) {
 		next_sample = 0;
 		if(buf->out_read != buf->out_write) {
 			next_sample = buf->out_data[buf->out_read];
+			//buf->out_data[buf->out_read] = 0;
 			buf->out_read = (buf->out_read + 1) % AUDIO_OUT_RINGBUF_SIZE;
 
 			buf->out_empty = 0; /* Let the userspace know it can write now */
@@ -89,7 +93,15 @@ void main(void) {
 
 		__delay_cycles(HALF_BCK_A);
 		__R30 |= 2;
-		__delay_cycles(HALF_BCK_B);
+		__delay_cycles(HALF_BCK_C); /* About to do something expensive */
+
+		/* For every sample, also read an input sample */
+		uint32_t in_sample = sampler->audio_sample_avg;
+		sampler->audio_sample_reset = 1;
+
+		/* Write this to the input ring buffer */
+		buf->in_data[buf->in_write] = in_sample;
+		buf->in_write = (buf->in_write + 1) % AUDIO_IN_RINGBUF_SIZE;
 
 		/* For the next 31 bits, LRCK = high */
 		shift_sample = next_sample;
@@ -116,16 +128,12 @@ void main(void) {
 
 		__delay_cycles(HALF_BCK_A);
 		__R30 |= 2;
-		__delay_cycles(HALF_BCK_B);
+		__delay_cycles(HALF_BCK_C); /* About to do something expensive when we loop around */
 		//next_sample >>= 1;
 
-		/* For every sample, also read an input sample */
-		uint32_t in_sample = sampler->audio_sample_avg;
-		sampler->audio_sample_reset = 1;
+		
 
-		/* Write this to the input ring buffer */
-		buf->in_data[buf->in_write] = in_sample;
-		buf->in_write = (buf->in_write + 1) % AUDIO_IN_RINGBUF_SIZE;
+		
 	}
 
 	__halt();

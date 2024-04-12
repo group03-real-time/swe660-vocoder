@@ -6,7 +6,7 @@
 #include <fcntl.h>
 
 #include "app.h"
-#include "mmap.h"
+#include "hardware.h"
 
 /* Memory addresses for all the GPIO registers. These are copied from the
  * AM335X Technical Reference Manual, pp. 173-185.

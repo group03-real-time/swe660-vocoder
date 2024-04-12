@@ -35,8 +35,8 @@ struct pru1_ds {
 	uint32_t out_read;
 	uint32_t out_write;
 	uint32_t out_empty;
-	uint32_t in_data[AUDIO_IN_RINGBUF_SIZE];
 	uint32_t out_data[AUDIO_OUT_RINGBUF_SIZE];
+	uint32_t in_data[AUDIO_IN_RINGBUF_SIZE];
 };
 
 /* We put the data structures at 0x200 in each PRU, as the first 0x200 bytes
