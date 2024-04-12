@@ -32,7 +32,7 @@ main(int argc, char **argv) {
 #ifdef HARDWARE
 		return main_app(argc, argv);
 #else
-		puts("not on hardware: you must specify -ov, -os, -ovs, or -ppw");
+		puts("not on hardware: you must specify -ov, -os, -ovs or -help");
 		return 1;
 #endif
 	}
@@ -49,6 +49,22 @@ main(int argc, char **argv) {
 		return main_ovs(argc, argv);
 	}
 
+	if(!strcmp(argv[1], "-help")) {
+		puts("possible options:\n"
+		"  -ov: 'offline vocode': run the vocoder on a modulator.wav and carrier.wav, producing an output.wav\n"
+		"  -os: 'offline synth': run the synthesizer and create an output.wav\n"
+		"  -ovs: 'offline vocoder synth': run the vocoder on a modulator.wav and the built-in synth, producing an output.wav\n"
+		"  -help: show this help menu\n"
+		"if you are on hardware, some additional options are available:\n"
+		"  -ppw: 'PRU play wav': use the PRU audio setup to play a WAV file over i2s\n"
+		"  -prw: 'PRU record wav': use the PRU audio/sampling setup to record a WAV file over the ADC pin 0\n"
+		"  -bg: 'button grid': run an experimental 'button grid' setup to test it\n"
+		);
+		return 0;
+	}
+
+/* These options only work on hardware */
+#ifdef HARDWARE
 	if(!strcmp(argv[1], "-ppw")) {
 		return main_ppw(argc, argv);
 	}
@@ -60,7 +76,8 @@ main(int argc, char **argv) {
 	if(!strcmp(argv[1], "-bg")) {
 		return main_bg(argc, argv);
 	}
+#endif
 
-	printf("error: unknown option %s. available options are: -ov, -os, -ovs", argv[1]);
+	printf("error: unknown option %s.  run -help to see available options", argv[1]);
 	return 1;
 }
