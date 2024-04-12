@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <inttypes.h>
 
 #include "wav/wav.h"
 
@@ -26,7 +27,7 @@ int main_prw(int argc, char **argv) {
 
 	printf("recording done. samples:\n");
 	for(uint64_t i = 0; i < record.frames; i += 100) {
-		printf("@ %llu -> %d\n", i, record.buffer[i]);
+		printf("@ %" PRIu64  " -> %" PRIi32 "\n", i, record.buffer[i]);
 	}
 
 	wav_write_or_warn(&record, record_fp);

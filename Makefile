@@ -17,12 +17,12 @@ SRCS=\
 	main.c\
 	menu.c\
 	hardware.c\
-	offline_vocode.c\
-	offline_synth.c\
-	offline_vocode_synth.c\
-	pru_play_wav.c\
-	pru_record_wav.c\
-	2x2_button_grid.c\
+	subapps/offline_vocode.c\
+	subapps/offline_synth.c\
+	subapps/offline_vocode_synth.c\
+	subapps/pru_play_wav.c\
+	subapps/pru_record_wav.c\
+	subapps/2x2_button_grid.c\
 	pru/pru_interface.c\
 	dsp/bpf.c\
 	dsp/vocoder.c\
@@ -30,10 +30,10 @@ SRCS=\
 	wav/wav.c\
 	
 # List of subdirectories inside src. Needed to keep the build fast.
-SRC_DIRECTORIES=dsp wav pru
+SRC_DIRECTORIES=dsp wav pru subapps
 
 # List of flags we want for the C compiler
-CFLAGS_DEFAULT=-Wall -std=gnu11 -O3 -Wno-error=unused-result -g -I.
+CFLAGS_DEFAULT=-Wall -std=gnu11 -O3 -Wno-error=unused-result -g -I. -Isrc
 LDFLAGS_DEFAULT=-lm
 
 # The default SSH target, or whatever, for the beaglebone. Can be overridden

@@ -8,8 +8,8 @@
 
 #include <sched.h>
 
-#include "../app.h"
-#include "../hardware.h"
+#include "app.h"
+#include "hardware.h"
 
 #include <firmware/firmware.h>
 

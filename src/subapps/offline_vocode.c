@@ -9,6 +9,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <inttypes.h> /* printf PRIu64 */
 
 int main_ov(int argc, char **argv) {
 	if(argc < 5) {
@@ -41,7 +42,7 @@ int main_ov(int argc, char **argv) {
 		1,
 		SAMPLE_RATE);
 
-	printf("output frames = %llu\n", out.frames);
+	printf("output frames = %" PRIu64 "\n", out.frames);
 
 	/* Initialize the vocoder */
 	vocoder voc;
@@ -63,4 +64,6 @@ int main_ov(int argc, char **argv) {
 	}
 
 	wav_write_or_warn(&out, out_fp);
+
+	return 0;
 }
