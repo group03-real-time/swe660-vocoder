@@ -36,7 +36,7 @@ main_app(int argc, char **argv) {
 	pru_audio_prepare_latency();
 	pru_audio_prepare_reading();
 
-	int i = 0;
+	//int i = 0;
 
 	while(app_running) {
 		uint32_t modulator = pru_read_audio() * 1024;
@@ -45,8 +45,8 @@ main_app(int argc, char **argv) {
 
 		int32_t out = vc_process(&voc, modulator, carrier);
 
-		if(i == 200) { i = 0; printf("got data %d => %d\n", modulator, out); }
-		i++;
+		//if(i == 200) { i = 0; printf("got data %d => %d\n", modulator, out); }
+		//i++;
 
 		pru_write_audio(out);
 	}

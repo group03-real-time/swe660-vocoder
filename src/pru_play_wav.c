@@ -24,7 +24,7 @@ int main_ppw(int argc, char **argv) {
 		frame += play.channels;
 
 		/* For now: Make samples quiet */
-		sample >>= 5;
+		//sample >>= 5;
 
 		pru_write_audio(sample);
 	}
