@@ -75,7 +75,7 @@ void main(void) {
 	uint32_t audio_sample_count = 0;
 	uint32_t audio_sample_total = 0;
 
-	sampler->magic = 0xBEE5BEE5;
+	sampler->magic = PRU0_MAGIC_NUMBER;
 
 	int i;
 	for(i = 0; i < 8; ++i) {

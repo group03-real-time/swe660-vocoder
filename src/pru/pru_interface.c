@@ -17,6 +17,7 @@
 #define PRU_END   0x4A37FFFF
 #define PRU_SIZE (PRU_END - PRU_START) + 1
 
+static struct pru0_ds *pru_adc = NULL;
 static struct pru1_ds *pru_audio = NULL;
 
 void pru_init() {
@@ -24,11 +25,14 @@ void pru_init() {
 	if(!base) {
 		app_fatal_error("could not get PRU mmap'd IO");
 	}
-	pru_audio = (void*)(base + 0x2200);
+	pru_adc   = (void*)(base + PRU0_GLOBAL_DS_OFFSET);
+	pru_audio = (void*)(base + PRU1_GLOBAL_DS_OFFSET);
 
-	uint32_t magic = pru_audio->magic;
-	uint32_t correct_magic = 0xF00DF00D; /* TODO: Sync thru headers */
-	if(magic != correct_magic) {
+	if(pru_adc->magic != PRU0_MAGIC_NUMBER) {
+		app_fatal_error("PRU 0 magic number is wrong. The firmware may not be installed correctly.");
+	}
+
+	if(pru_audio->magic != PRU1_MAGIC_NUMBER) {
 		app_fatal_error("PRU 1 magic number is wrong. The firmware may not be installed correctly.");
 	}
 }

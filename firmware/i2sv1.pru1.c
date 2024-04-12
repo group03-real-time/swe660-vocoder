@@ -26,7 +26,7 @@ void main(void) {
 	uint32_t bits;
 	int i;
 
-	buf->magic = 0xF00DF00D; /* Just so we can debug if it's working. */
+	buf->magic = PRU1_MAGIC_NUMBER; /* Used to detect if the PRU is running properly. */
 
 	for(i = 0; i < AUDIO_OUT_RINGBUF_SIZE; ++i) {
 		buf->out_data[i] = 0;
