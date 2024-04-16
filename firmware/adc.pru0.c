@@ -47,19 +47,35 @@ static void config_adc() {
 
 	ADC_TSC.STEPENABLE = 0; /* disable all steps */
 
-	/* Setup all steps */
+	/* Step configuration:
+	 * First, we want to sample the audio channel as often as possible. What 
+	 * this means in practice is simply that we sample the other channels
+	 * as rarely as possible.
+	 * 
+	 * Well, not quite. For simplicity, we want to use a single fixed sequencer
+	 * setup--just walk through the same sampling steps over and over.
+	 * 
+	 * So what we do is use 7/8 steps for sampling the audio data, and the 8th
+	 * step for sampling one of the other channels. Because there are only 16
+	 * steps, this setup supports 2 of the channels (which, with 2 multiplexers,
+	 * supports a total of 32 possible knobs). */
 	STEPCONFIG_FOR_APP(1, 0, 1);
-	//STEPCONFIG_FOR_APP(2, 1, 0);
+	STEPCONFIG_FOR_APP(2, 0, 1);
 	STEPCONFIG_FOR_APP(3, 0, 1);
-	//STEPCONFIG_FOR_APP(4, 2, 0);
+	STEPCONFIG_FOR_APP(4, 0, 1);
 	STEPCONFIG_FOR_APP(5, 0, 1);
-	//STEPCONFIG_FOR_APP(6, 3, 0);
+	STEPCONFIG_FOR_APP(6, 0, 1);
 	STEPCONFIG_FOR_APP(7, 0, 1);
-	//STEPCONFIG_FOR_APP(8, 4, 0);
+	STEPCONFIG_FOR_APP(8, 1, 0); /* Sample for ADC channel 1 */
+
 	STEPCONFIG_FOR_APP(9, 0, 1);
-	//STEPCONFIG_FOR_APP(10, 5, 0);
+	STEPCONFIG_FOR_APP(10, 0, 1);
 	STEPCONFIG_FOR_APP(11, 0, 1);
-	STEPCONFIG_FOR_APP(12, 6, 0); /* Do not need val 7 */
+	STEPCONFIG_FOR_APP(12, 0, 1);
+	STEPCONFIG_FOR_APP(13, 0, 1);
+	STEPCONFIG_FOR_APP(14, 0, 1);
+	STEPCONFIG_FOR_APP(15, 0, 1);
+	STEPCONFIG_FOR_APP(16, 2, 0); /* Sample for ADC channel 2 */
 
 	ADC_TSC.CTRL_bit.STEPCONFIG_WRITEPROTECT_N_ACTIVE_LOW = 0;
 	/* Need to store the ID tag in the fifo so we know which value was written */
