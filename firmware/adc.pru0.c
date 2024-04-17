@@ -85,49 +85,96 @@ static void config_adc() {
 
 void main(void) {
 
-	/* For AIN0 (the microphone), the samples are averaged over time until
-	 * the other PRU reads them. This ensures that we get a low-pass filtered
-	 * signal that should be at least reasonably good. */
-	uint32_t audio_sample_count = 0;
-	uint32_t audio_sample_total = 0;
+	/* For each channel, the samples are averaged over time until something
+	 * reads them. For the audio channel, this is until the other PRU reads them.
+	 * 
+	 * This provides a few functionalites.
+	 * 
+	 * First, it simply gives a less noisy reading. The ADC is likely to read
+	 * slightly different values over time a lot of the time.
+	 * 
+	 * Second, it low passes filters the signal. This is most important for
+	 * the audio signal, but essentially amounts to smoothing for all of the
+	 * signals. This low pass filter is not likely to be very high quality,
+	 * but it's better than nothing.
+	 * 
+	 * Finally, it provides more bit depth. In essence, we're doing the following:
+	 * 
+	 * average = samples / sample_count
+	 * 
+	 * But, because the division loses information, we rearrange like so:
+	 * 
+	 * F * average = F * samples / sample_count = (F * samples) / sample_count
+	 * 
+	 * And then provide this value F * average. F is one of either AUDIO_VIRTUAL_SAMPLECOUNT
+	 * or ADC_VIRTUAL_SAMPLECOUNT.
+	 * 
+	 * As long as F >= sample_count, this prevents the loss of information. */
 
 	sampler->magic = PRU0_MAGIC_NUMBER;
 
 	int i;
 	for(i = 0; i < 8; ++i) {
 		sampler->samples[i] = 0;
+		sampler->sample_count[i] = 0;
+		sampler->sample_total[i] = 0;
+		sampler->sample_reset[i] = 0;
 	}
-	sampler->audio_sample_avg = 0;
 	
 	/* Clear SYSCFG[STANDBY_INIT] to enable OCP master port */
 	CT_CFG.SYSCFG_bit.STANDBY_INIT = 0;
 
 	config_adc();
 
+/* We use the same UPDATE_SAMPLE macro for both FIFOs -- FIFO 1 has all
+ * the audio (channel 0) samples, while FIFO 0 has all the other samples.
+ *
+ * The process is as follows.
+ * 
+ * If the reset flag is set for the channel, then the total and count values
+ * are reset to 0.
+ * 
+ * Otherwise, the total is increased by the sample, and the count is increased
+ * by 1. This is because the average = total / count, as might be expected.
+ * 
+ * Finally, the average is simply computed every single time. This is because
+ * the ADC only supports up to 200,000 samples/sec, while the PRU runs much
+ * much faster. As such, it doesn't matter that we recompute the average each
+ * time, and this ensures that the CPU side can simply read the average value.
+ * 
+ * That is, we don't want the CPU trying to read both the total and the sample
+ * count, as one of those might change while it's reading the other. Instead,
+ * the average value will always represent *some* kind of valid sample, so
+ * the CPU can just read it directly. */
+#define UPDATE_SAMPLE(chan, val, SCALING)\
+do {\
+	if(sampler->sample_reset[chan]) {\
+		sampler->sample_count[chan] = 0;\
+		sampler->sample_total[chan] = 0;\
+		\
+		sampler->sample_reset[chan] = 0;\
+	}\
+	\
+	sampler->sample_total[chan] += val;\
+	sampler->sample_count[chan] += 1;\
+	\
+	sampler->samples[chan] = (sampler->sample_total[chan]  * SCALING) / sampler->sample_count[chan];\
+} while(0)
+
 	for(;;) {
 		if(ADC_TSC.FIFO0COUNT > 0) {
 			uint32_t next = ADC_TSC.FIFO0DATA;
 			uint32_t chan = (next >> 16) & 0xF;
 			uint32_t val = next & 0xFFF;
-			sampler->samples[chan] = val;
+			
+			UPDATE_SAMPLE(chan, val, ADC_VIRTUAL_SAMPLECOUNT);
 		}
 
 		if(ADC_TSC.FIFO1COUNT > 0) {
 			/* Don't need the channel as this is always channel 0. */
 			uint32_t sample = ADC_TSC.FIFO1DATA_bit.ADCDATA;
 
-			if(sampler->audio_sample_reset) {
-				sampler->last_audio_sample_count = audio_sample_count;
-
-				audio_sample_count = 0;
-				audio_sample_total = 0;
-				sampler->audio_sample_reset = 0;
-			}
-
-			audio_sample_total += sample;
-			audio_sample_count += 1;
-
-			sampler->audio_sample_avg = (audio_sample_total * AUDIO_VIRTUAL_SAMPLECOUNT) / audio_sample_count;
+			UPDATE_SAMPLE(0, sample, AUDIO_VIRTUAL_SAMPLECOUNT);
 		}
 	}
 

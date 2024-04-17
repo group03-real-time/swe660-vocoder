@@ -17,6 +17,7 @@ SRCS=\
 	main.c\
 	menu.c\
 	hardware.c\
+	audio_params.c\
 	subapps/offline_vocode.c\
 	subapps/offline_synth.c\
 	subapps/offline_vocode_synth.c\

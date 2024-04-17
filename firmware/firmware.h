@@ -19,15 +19,21 @@
  * 16 * 4096, and the samples will be scaled to match this scale either way. */
 #define AUDIO_VIRTUAL_SAMPLECOUNT 16
 
+/* Same idea for the other ADC samples. */
+#define ADC_VIRTUAL_SAMPLECOUNT 16
+
 struct pru0_ds {
 	uint32_t magic;
-	uint32_t audio_sample_avg;
 
-	uint32_t last_audio_sample_count;
-
-	/* set to 1 to indicate the previous sample has been read. */
-	uint32_t audio_sample_reset;
+	/* The samples array contains the actual data for each channel.
+	 * Note: Audio = channel 0.
+	 * The other ADC channels may or may not be in use depending on the firwmare
+	 * code. In practice, we will likely only use channels 0, 1, and 2, or
+	 * only 0 and 1. */
 	uint32_t samples[8];
+	uint32_t sample_count[8];
+	uint32_t sample_total[8];
+	uint32_t sample_reset[8];
 };
 
 struct pru1_ds {

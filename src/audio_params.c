@@ -34,7 +34,23 @@ multiplex_sequencer[] = {
 
 static void
 multiplex_gpio_write() {
-	/* Write the next index to the GPIO pins */
+	/* Write the next index to the GPIO pins.
+	 * Write low bits first.
+	 * 
+	 * This is so that there's always a valid thing connected to the ADC.
+	 * 
+	 * In particular, going from 1101 -> 0, for example, is fine, because if
+	 * we have 1101, we also have 1100, 1000, and 0000.
+	 * 
+	 * Similarly, going from 0111 to 1000 is fine, because we have 0110, 0100,
+	 * and 0000.
+	 * 
+	 * If we went from high bits first, then going from 0111 to 1000 would also
+	 * go through 1111, 1011, and 1001.
+	 * 
+	 * Of course, the ideal way to do this would probably be to choose some
+	 * GPIO pins all on the same GPIO register, and then do the entire update
+	 * in a single 4-byte write. But, oh well. */
 	gpio_write(multiplex_0, !!(multiplexer_idx & 0x1));
 	gpio_write(multiplex_1, !!(multiplexer_idx & 0x2));
 	gpio_write(multiplex_2, !!(multiplexer_idx & 0x4));
@@ -56,7 +72,7 @@ audio_params_tick_multiplexer(audio_params *out) {
 	/* Figure out where the dsp_num we want to write to is inside the audio_params */
 	dsp_num *out_ptr = (dsp_num*)((uintptr_t)out + seq->offset);
 
-	*out_ptr = seq->fn(pru_adc_read(1)); /* All sequencer values are on channel 1 */
+	*out_ptr = seq->fn(pru_adc_read_without_reset(1)); /* All sequencer values are on channel 1 */
 
 	/* Finally, update the sequencer so that the next tick will udpate the next value */
 	multiplexer_idx += 1;
@@ -64,4 +80,8 @@ audio_params_tick_multiplexer(audio_params *out) {
 
 	/* Update the multiplexer address for the next tick */
 	multiplex_gpio_write();
+	
+	/* Notify the ADC to reset the sample after the multiplexer is updated.
+	 * At this point, the data coming in on that channel *should* correspond
+	 * to the new channel. */
 }

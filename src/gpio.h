@@ -63,7 +63,7 @@ typedef struct {
 	uint32_t mask;
 } gpio_pin;
 
-#define GPIO_PIN_INVALID (gpio_pin){ .dataout_ptr = NULL, .mask = 0 }
+#define GPIO_PIN_INVALID (gpio_pin){ .data_ptr = NULL, .mask = 0 }
 
 #else
 

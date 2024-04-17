@@ -161,3 +161,12 @@ pru_audio_read() {
 	return result;
 }
 
+int32_t
+pru_adc_read_without_reset(int32_t channel) {
+	return pru_adc->samples[channel];
+}
+
+void
+pru_adc_reset(int32_t channel) {
+	pru_adc->sample_reset[channel] = 1;
+}

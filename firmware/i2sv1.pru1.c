@@ -92,9 +92,9 @@ void main(void) {
 		__R30 |= 2;
 		__delay_cycles(HALF_BCK_C); /* About to do something expensive */
 
-		/* For every sample, also read an input sample */
-		uint32_t in_sample = sampler->audio_sample_avg;
-		sampler->audio_sample_reset = 1;
+		/* For every sample, also read an input sample. Audio = ADC channel 0 */
+		uint32_t in_sample = sampler->samples[0];
+		sampler->sample_reset[0] = 1;
 
 		/* Write this to the input ring buffer */
 		buf->all_data[AUDIO_OUT_RINGBUF_SIZE + buf->in_write] = in_sample;
