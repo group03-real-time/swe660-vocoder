@@ -28,6 +28,9 @@ int main_os(int argc, char **argv) {
 	synth syn;
 	synth_init(&syn);
 
+	audio_params ap;
+	audio_params_default(&ap);
+
 	//int octave = 12 * 4;
 
 	/* Play a note */
@@ -39,7 +42,7 @@ int main_os(int argc, char **argv) {
 	uint64_t timer = SAMPLE_RATE * 2;
 
 	for(uint64_t i = 0; i < out.frames; ++i) {
-		out.buffer[i] = synth_process(&syn);
+		out.buffer[i] = synth_process(&syn, &ap);
 
 		timer -= 1;
 

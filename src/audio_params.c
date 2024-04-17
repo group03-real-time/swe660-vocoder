@@ -85,3 +85,20 @@ audio_params_tick_multiplexer(audio_params *out) {
 	 * At this point, the data coming in on that channel *should* correspond
 	 * to the new channel. */
 }
+
+void
+audio_params_default(audio_params *ap) {
+	ap->attack  = dsp_one;
+	ap->decay   = dsp_one;
+	ap->sustain = dsp_one;
+	ap->release = dsp_one;
+
+	ap->noise_gain  = dsp_from_double(1 / 32.0);
+	ap->output_gain = dsp_from_double(1 / 32.0);
+
+	for(int i = 0; i < 3; ++i) {
+		ap->oscs[i].gain     = dsp_one;
+		ap->oscs[i].semitone = 0;
+		ap->oscs[i].shape    = dsp_one;
+	}
+}

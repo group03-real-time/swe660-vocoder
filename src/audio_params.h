@@ -26,7 +26,7 @@ typedef struct {
 	dsp_num semitone;
 	dsp_num shape;
 	dsp_num gain;
-} synth_voice_params;
+} synth_osc_params;
 
 typedef struct {
 	dsp_num attack;
@@ -37,7 +37,7 @@ typedef struct {
 	dsp_num output_gain;
 	dsp_num noise_gain;
 
-	synth_voice_params voices[3];
+	synth_osc_params oscs[3];
 } audio_params;
 
 void audio_params_default(audio_params *ap);

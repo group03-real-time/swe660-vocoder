@@ -2,6 +2,7 @@
 #define SYNTH_H
 
 #include "dsp.h"
+#include "audio_params.h"
 
 #define MAX_SYNTH_VOICES 4
 #define NUMBER_OF_NOTES 64
@@ -40,6 +41,6 @@ void synth_init(synth *syn);
 void synth_press(synth *syn, int note);
 void synth_release(synth *syn, int note);
 
-dsp_num synth_process(synth *syn);
+dsp_num synth_process(synth *syn, audio_params *ap);
 
 #endif

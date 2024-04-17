@@ -116,7 +116,7 @@ voice_compute_waveform(synth_voice *v) {
 }
 
 void
-synth_voice_process(synth_voice *v) {
+synth_voice_process(synth_voice *v, audio_params *ap) {
 	v->phase += v->phase_step;
 	while(v->phase >= dsp_one) {
 		v->phase -= dsp_one;
@@ -129,7 +129,9 @@ synth_voice_process(synth_voice *v) {
 	const dsp_num white_noise = dsp_rshift(v->white_noise_generator, 2);
 	const dsp_num sawtooth = voice_compute_waveform(v);
 
-	v->sample = dsp_rshift(sawtooth, 1) + dsp_rshift(white_noise, 5);
+	v->sample
+		= dsp_rshift(sawtooth, 1)
+		+ dsp_mul(white_noise, ap->noise_gain);
 	v->envelope = dsp_zero;
 	if(v->state != SYNTH_RELEASE) {
 		v->envelope = dsp_one;
@@ -137,12 +139,12 @@ synth_voice_process(synth_voice *v) {
 }
 
 dsp_num
-synth_process(synth *syn) {
+synth_process(synth *syn, audio_params *ap) {
 	dsp_largenum suml = 0;
 
 	for(int i = 0; i < MAX_SYNTH_VOICES; ++i) {
 		synth_voice *v = &syn->voices[i];
-		synth_voice_process(v);
+		synth_voice_process(v, ap);
 
 		suml += dsp_mul_large(v->sample, v->envelope);
 	}

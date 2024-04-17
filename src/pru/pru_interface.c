@@ -11,6 +11,8 @@
 #include "app.h"
 #include "hardware.h"
 
+#include "dsp/dsp.h"
+
 #include <firmware/firmware.h>
 
 #define PRU_START 0x4A300000
@@ -149,6 +151,8 @@ pru_audio_prepare_reading() {
 
 int32_t
 pru_audio_read() {
+	const dsp_num gain = (dsp_one / 2) / (2048 * AUDIO_VIRTUAL_SAMPLECOUNT);
+	
 	while(pru_audio->in_read == pru_audio->in_write) {
 		sched_yield();
 	}
@@ -158,7 +162,7 @@ pru_audio_read() {
 
 	result -= (2048 * AUDIO_VIRTUAL_SAMPLECOUNT);
 
-	return result;
+	return result * gain;
 }
 
 int32_t

@@ -5,6 +5,8 @@
 #include "gpio.h"
 #include "good_user_input.h"
 
+#include "audio_params.h"
+
 #include "dsp/vocoder.h"
 #include "dsp/synth.h"
 
@@ -23,6 +25,10 @@ main_app(int argc, char **argv) {
 	synth syn;
 	synth_init(&syn);
 
+	audio_params params;
+	audio_params_default(&params);
+	audio_params_init_multiplexer();
+
 	/* Play some notes */
 	synth_press(&syn, 0);
 	synth_press(&syn, 7);
@@ -32,17 +38,16 @@ main_app(int argc, char **argv) {
 	pru_audio_prepare_writing();
 	pru_audio_prepare_reading();
 
-	//int i = 0;
-
 	while(app_running) {
-		uint32_t modulator = pru_audio_read() * 1024;
+		/* Read the modulator */
+		uint32_t modulator = pru_audio_read();
 
-		dsp_num carrier = synth_process(&syn);
+		dsp_num carrier = synth_process(&syn, &params);
 
-		int32_t out = vc_process(&voc, modulator, carrier);
+		dsp_num out = vc_process(&voc, modulator, carrier);
 
-		//if(i == 200) { i = 0; printf("got data %d => %d\n", modulator, out); }
-		//i++;
+		/* Apply output gain */
+		out = dsp_mul(out, params.output_gain);
 
 		pru_audio_write(out);
 	}

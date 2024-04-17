@@ -40,6 +40,9 @@ int main_ovs(int argc, char **argv) {
 	synth syn;
 	synth_init(&syn);
 
+	audio_params ap;
+	audio_params_default(&ap);
+
 	/* Play some notes */
 	synth_press(&syn, 0);
 	synth_press(&syn, 7);
@@ -51,7 +54,7 @@ int main_ovs(int argc, char **argv) {
 	for(uint64_t i = 0; i < out.frames; ++i) {
 		dsp_num m = (mi < mod.buffer_length) ? mod.buffer[mi] : 0;
 
-		dsp_num c = synth_process(&syn);
+		dsp_num c = synth_process(&syn, &ap);
 
 		out.buffer[i] = vc_process(&voc, m, c);
 
