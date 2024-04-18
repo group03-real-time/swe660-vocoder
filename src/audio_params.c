@@ -85,6 +85,7 @@ audio_params_tick_multiplexer(audio_params *out) {
 	/* Notify the ADC to reset the sample after the multiplexer is updated.
 	 * At this point, the data coming in on that channel *should* correspond
 	 * to the new channel. */
+	pru_adc_reset(1);
 }
 
 void

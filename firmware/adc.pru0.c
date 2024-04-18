@@ -158,7 +158,7 @@ do {\
 	sampler->sample_total[chan] += val;\
 	sampler->sample_count[chan] += 1;\
 	\
-	sampler->samples[chan] = (sampler->sample_total[chan]  * SCALING) / sampler->sample_count[chan];\
+	sampler->samples[chan] = (sampler->sample_total[chan] * SCALING) / sampler->sample_count[chan];\
 } while(0)
 
 	for(;;) {
