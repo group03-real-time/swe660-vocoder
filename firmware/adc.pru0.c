@@ -68,14 +68,14 @@ static void config_adc() {
 	STEPCONFIG_FOR_APP(7, 0, 1);
 	STEPCONFIG_FOR_APP(8, 1, 0); /* Sample for ADC channel 1 */
 
-	STEPCONFIG_FOR_APP(9, 0, 1);
-	STEPCONFIG_FOR_APP(10, 0, 1);
-	STEPCONFIG_FOR_APP(11, 0, 1);
-	STEPCONFIG_FOR_APP(12, 0, 1);
-	STEPCONFIG_FOR_APP(13, 0, 1);
-	STEPCONFIG_FOR_APP(14, 0, 1);
-	STEPCONFIG_FOR_APP(15, 0, 1);
-	STEPCONFIG_FOR_APP(16, 2, 0); /* Sample for ADC channel 2 */
+	//STEPCONFIG_FOR_APP(9, 0, 1);
+	//STEPCONFIG_FOR_APP(10, 0, 1);
+	//STEPCONFIG_FOR_APP(11, 0, 1);
+	//STEPCONFIG_FOR_APP(12, 0, 1);
+	//STEPCONFIG_FOR_APP(13, 0, 1);
+	//STEPCONFIG_FOR_APP(14, 0, 1);
+	//STEPCONFIG_FOR_APP(15, 0, 1);
+	//STEPCONFIG_FOR_APP(16, 2, 0); /* Sample for ADC channel 2 */
 
 	ADC_TSC.CTRL_bit.STEPCONFIG_WRITEPROTECT_N_ACTIVE_LOW = 0;
 	/* Need to store the ID tag in the fifo so we know which value was written */
@@ -167,7 +167,7 @@ do {\
 			uint32_t chan = (next >> 16) & 0xF;
 			uint32_t val = next & 0xFFF;
 			
-			UPDATE_SAMPLE(chan, val, ADC_VIRTUAL_SAMPLECOUNT);
+			UPDATE_SAMPLE(1, val, ADC_VIRTUAL_SAMPLECOUNT);
 		}
 
 		if(ADC_TSC.FIFO1COUNT > 0) {

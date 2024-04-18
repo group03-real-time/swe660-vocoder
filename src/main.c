@@ -12,6 +12,8 @@
 
 #include "pru/pru_interface.h"
 
+#define AUDIO_PARAM_TICK_RATE 46
+
 int
 main_app(int argc, char **argv) {
 	/* utsname */
@@ -38,6 +40,8 @@ main_app(int argc, char **argv) {
 	pru_audio_prepare_writing();
 	pru_audio_prepare_reading();
 
+	int audio_param_tick = 0;
+
 	while(app_running) {
 		/* Read the modulator */
 		uint32_t modulator = pru_audio_read();
@@ -50,6 +54,12 @@ main_app(int argc, char **argv) {
 		out = dsp_mul(out, params.output_gain);
 
 		pru_audio_write(out);
+
+		audio_param_tick += 1;
+		if(audio_param_tick >= AUDIO_PARAM_TICK_RATE) {
+			audio_param_tick = 0;
+			audio_params_tick_multiplexer(&params);
+		}
 	}
 
 	return 0;

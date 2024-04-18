@@ -27,7 +27,7 @@ typedef struct {
 
 static multiplex_seq_entry
 multiplex_sequencer[] = {
-	ENTRY(attack, param_exponential_lerp_factor)
+	ENTRY(output_gain, param_gain)
 };
 
 #define SEQUENCER_LEN (sizeof(multiplex_sequencer) / sizeof(*multiplex_sequencer))
@@ -72,7 +72,8 @@ audio_params_tick_multiplexer(audio_params *out) {
 	/* Figure out where the dsp_num we want to write to is inside the audio_params */
 	dsp_num *out_ptr = (dsp_num*)((uintptr_t)out + seq->offset);
 
-	*out_ptr = seq->fn(pru_adc_read_without_reset(1)); /* All sequencer values are on channel 1 */
+	dsp_num input = pru_adc_read_without_reset(1);
+	*out_ptr = seq->fn(input); /* All sequencer values are on channel 1 */
 
 	/* Finally, update the sequencer so that the next tick will udpate the next value */
 	multiplexer_idx += 1;

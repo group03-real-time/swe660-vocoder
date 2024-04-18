@@ -5,6 +5,8 @@
 
 #include "types.h"
 
+#define INPUT_MAX 65536 /* NOTE: Must be synchronized with ADC_VIRTUAL_SAMPLES */
+
 static inline dsp_num
 param_exponential_lerp_factor(uint32_t adc_value) {
 	return 0;
@@ -12,12 +14,13 @@ param_exponential_lerp_factor(uint32_t adc_value) {
 
 static inline dsp_num
 param_linear(uint32_t adc_value) {
-	return 0;
+	const dsp_num mul = dsp_one / INPUT_MAX;
+	return adc_value * mul;
 }
 
 static inline dsp_num
 param_gain(uint32_t adc_value) {
-	return 0;
+	return param_linear(adc_value);
 }
 
 typedef dsp_num (*param_adc_fn)(uint32_t value);

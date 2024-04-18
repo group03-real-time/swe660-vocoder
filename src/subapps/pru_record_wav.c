@@ -19,7 +19,7 @@ int main_prw(int argc, char **argv) {
 
 	pru_audio_prepare_reading();
 	for(uint64_t i = 0; i < record.frames; ++i) {
-		int32_t sample = pru_audio_read() * 1024;
+		int32_t sample = pru_audio_read();
 		record.buffer[i] = sample;
 	}
 
