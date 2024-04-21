@@ -4,6 +4,8 @@
 #include <math.h>
 #include <complex.h>
 
+#include "app.h"
+
 typedef struct {
 	double a1;
 	double a2;
@@ -117,18 +119,16 @@ complex_pair bp_transform_pair(complex c, double b, double a2, double b2, double
 }
 
 void band_pass_transform(analog_layout *analog, digital_layout *digital, double fc, double fw) {
-	//if (!(fc < 0.5)) throw_invalid_argument(cutoffError);
-	//if (fc < 0.0) throw_invalid_argument(cutoffNeg);
-
-	//digital.reset ();
+	if (!(fc < 0.5)) app_fatal_error("filter design bug: fc must be < 0.5");
+	if (fc < 0.0)    app_fatal_error("filter design bug: fc must be >= 0.0");
 	
 	const double ww = 2 * doublePi * fw;
-	
-	// pre-calcs
+
 	double wc2 = 2 * doublePi * fc - (ww / 2);
 	double wc  = wc2 + ww;
 	
-	// what is this crap?
+	/* Apparently the original source performs some clamping for very close
+	 * values to 0 and pi. */
 	if (wc2 < 1e-8)
 		wc2 = 1e-8;
 	if (wc  > doublePi-1e-8)
@@ -174,54 +174,56 @@ void bq_set_coefficients(double_biquad *bq, double a0, double a1, double a2, dou
 
 void bq_from_pzp(double_biquad *bq, pole_zero_pair *pzp) {
 	const double a0 = 1;
-		double a1;
-		double a2;
-		const char errMsgPole[] = "imaginary parts of both poles need to be 0 or complex conjugate";
-		const char errMsgZero[] = "imaginary parts of both zeros need to be 0 or complex conjugate";
+	double a1;
+	double a2;
 
-		if (cimag(pzp->p1) != 0)
-		{
-			//if (pole2 != std::conj (pole1))
-			//	throw_invalid_argument(errMsgPole);
-			a1 = -2 * creal(pzp->p1);
-			a2 = norm(pzp->p1);
+	if (cimag(pzp->p1) != 0)
+	{
+		if (pzp->p2 != conj(pzp->p1)) {
+			app_fatal_error("filter design bug: poles must be 0 or conjugate");
 		}
-		else
-		{
-			//if (pole2.imag() != 0)
-			//	throw_invalid_argument(errMsgPole);
-			a1 = -(creal(pzp->p1) + creal(pzp->p2));
-			a2 =   creal(pzp->p1) * creal(pzp->p2);
+		a1 = -2 * creal(pzp->p1);
+		a2 = norm(pzp->p1);
+	}
+	else
+	{
+		if (cimag(pzp->p2) != 0.0) {
+			app_fatal_error("filter design bug: poles must be 0 or conjugate");
 		}
+		a1 = -(creal(pzp->p1) + creal(pzp->p2));
+		a2 =   creal(pzp->p1) * creal(pzp->p2);
+	}
 
-		const double b0 = 1;
-		double b1;
-		double b2;
+	const double b0 = 1;
+	double b1;
+	double b2;
 
-		if (cimag(pzp->z1) != 0)
-		{
-			//if (zero2 != std::conj (zero1))
-			//	throw_invalid_argument(errMsgZero);
-			b1 = -2 * creal(pzp->z1);
-			b2 = norm(pzp->z1);
+	if (cimag(pzp->z1) != 0)
+	{
+		if (pzp->z2 != conj(pzp->z1)) {
+			app_fatal_error("filter design bug: zeroes must be 0 or conjugate");
 		}
-		else
-		{
-			//if (zero2.imag() != 0)
-			//	throw_invalid_argument(errMsgZero);
-
-			b1 = -(creal(pzp->z1) + creal(pzp->z2));
-			b2 =   creal(pzp->z1) * creal(pzp->z2);
+		b1 = -2 * creal(pzp->z1);
+		b2 = norm(pzp->z1);
+	}
+	else
+	{
+		if (cimag(pzp->z2) != 0.0) {
+			app_fatal_error("filter design bug: zeroes must be 0 or conjugate");
 		}
+		b1 = -(creal(pzp->z1) + creal(pzp->z2));
+		b2 =   creal(pzp->z1) * creal(pzp->z2);
+	}
 
-		bq_set_coefficients(bq, a0, a1, a2, b0, b1, b2);
+	bq_set_coefficients(bq, a0, a1, a2, b0, b1, b2);
 }
 
 
 
 complex cbq_response(bpf_cascaded_biquad *cbq, double_biquad *dbqs, double normalized_frequency) {
-	//if (normalized_frequency > 0.5) throw_invalid_argument(maxFError);
-	//if (normalized_frequency < 0.0) throw_invalid_argument(minFError);
+	if(normalized_frequency > 0.5) app_fatal_error("filter design bug: normalized_frequency must be <= 0.5");
+	if(normalized_frequency < 0.0) app_fatal_error("filter design bug: normalized_frequency must be >= 0.0");
+
 	double w = 2 * doublePi * normalized_frequency;
 	const complex czn1 = polar(1., -w);
 	const complex czn2 = polar(1., -2 * w);
@@ -249,11 +251,12 @@ complex cbq_response(bpf_cascaded_biquad *cbq, double_biquad *dbqs, double norma
 void bq_from_dbq(bpf_biquad *bq, double_biquad *dbq) {
 	bq->a1 = dsp_from_double(dbq->a1);
 	bq->a2 = dsp_from_double(dbq->a2);
+
+	/* We do not need to store these three coefficients, as they always have
+	 * the same value. */
 	//bq->b0 = dsp_from_double(dbq->b0);
 	//bq->b1 = dsp_from_double(dbq->b1);
 	//bq->b2 = dsp_from_double(dbq->b2);
-
-	//printf("coefficients [a1 a2 b0 b1 b2] = %f\t%f\t%f\t%f\t%f\n", dsp_to_float(bq->a1), dsp_to_float(bq->a2), dsp_to_float(bq->b0), dsp_to_float(bq->b1), dsp_to_float(bq->b2));
 }
 
 void design_bpf(bpf_cascaded_biquad *cbq, double fc, double fw) {
