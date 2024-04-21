@@ -18,31 +18,25 @@ void init_button_arr() {
 
 
 /**
- * Polls each button in the synth button array to detect if a button is being pushed, held, or released
+ * Polls each button in the synth button array to detect if a button has been changed from released to pressed or vice versa
 */
 void button_tick(synth *syn)
 {
   int16_t arr_length = sizeof(button_arr)/sizeof(button_arr[0]);
   for (int i=0; i < arr_length; i++) {
+    
     bool curr_btn_read= gipo_read(button_arr[i].gpio);
     
-    if (curr_btn_read == 1) {
+    if (curr_btn_read) {
         if (button_arr[i].state == RELEASED) { 
             synth_press(syn, button_arr[i].note); 
-            button_arr[i].state == JUSTPRESSED;
+            button_arr[i].state == PRESSED;
             }
-        if (button_arr[i].state == JUSTPRESSED) {
-             button_arr[i].state == HELD;  
-        }  
     } else {
-        if ((button_arr[i].state == JUSTPRESSED) || (button_arr[i].state == RELEASED)) {
+        if ((button_arr[i].state == PRESSED)) {
             synth_release(syn, button_arr[i].note); 
             button_arr[i].state == RELEASED;
         }
     }
-    
-
-
-
   }
 }

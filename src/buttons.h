@@ -2,8 +2,7 @@
 
 enum buttonState {
     RELEASED,
-    JUSTPRESSED,
-    HELD,
+    PRESSED,
 };
 
 
