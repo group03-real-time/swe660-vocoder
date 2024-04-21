@@ -1,5 +1,3 @@
-#if defined(USE_MMAP_GPIO) && !defined(EMULATOR) /* Only use this code if we provide a specific compiler flag */
-
 #include "gpio.h"
 
 #include <unistd.h>
@@ -56,23 +54,12 @@
 
 /** Holds the mmap'd addresses for the GPIO pins. */
 static volatile void *gpio_addresses[4] = { NULL, NULL, NULL, NULL };
-/** 
- * Holds reference counts for each address. Used to unmap them when they're no
- * longer used.
- */
-static int32_t gpio_refcounts[4] = {0};
 
 /** 
  * This is a lookup table for the GPIO_START for each register set (0, 1, 2, 3).
  * Needed to elegantly mmap those addresses.
  */
 static const uintptr_t gpio_start_addresses[4] = { GPIO0_START, GPIO1_START, GPIO2_START, GPIO3_START };
-
-/** 
- * We need to open() /dev/mem in order to use the memory mapped registers.
- * This fd is used throughout the program unless all refcounts drop to 0.
- */
-static int_fd dev_mem_fd = -1;
 
 void
 gpio_init() {
@@ -108,7 +95,6 @@ gpio_open(int32_t pin_number, bool is_input) {
 	volatile uint32_t *gpio_datain  = (void*)(addr + GPIO_DATAIN);
 
 	volatile uint32_t *result_ptr = NULL;
-
 	
 	if(is_input) {
 		/* For input: we use DATAIN register
@@ -147,6 +133,6 @@ gpio_read(gpio_pin pin) {
 
 void
 gpio_close(gpio_pin pin) {
+	/* This is a no-op for MMAP -- instead, we just have to release the mappings
+	 * when we're done with all the pins. */
 }
-
-#endif /* USE_MMAP_GPIO */

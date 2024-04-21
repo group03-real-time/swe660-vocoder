@@ -9,7 +9,6 @@ TARGET=vocoder
 
 # List of source files
 SRCS=\
-	gpio.c\
 	gpio_mmap.c\
 	app.c\
 	gpio_pins.c\
@@ -52,7 +51,7 @@ BUILDS=hw dsptest
 # Define the builds here. We don't support config.mk anymore.
 
 CC_hw=arm-linux-gnueabihf-gcc
-DEFS_hw=USE_MMAP_GPIO HARDWARE
+DEFS_hw=HARDWARE
 IS_CROSS_hw=true
 
 TARGETS=$(BUILDS:%=$(TARGET)-%)

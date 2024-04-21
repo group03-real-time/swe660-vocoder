@@ -1,47 +1,10 @@
 #ifndef GPIO_H
 #define GPIO_H
 
-#include <stddef.h> /* NULL */
 #include "types.h"
 
-/* gpio.h: contains an abstracted interface for GPIO operations. The interface
- * may be implemented as an emulator interface that does nothing but print to
- * the screen. 
- * 
- * It may also be implemented as an actual hardware interface, either through
- * the /sys/class/gpio filesystem, or through MMAP. */
-
-#ifdef EMULATOR
-
-/**
- * The gpio_pin struct is the main way to interact with GPIO pins. The struct
- * allows writing to a specific pin. The pin must be "opened" with gpio_open()
- * and "closed" with gpio_close(), which are akin to open() and close() in the
- * case of a GPIO pin implemented with a file descriptor.
- * 
- * More generally, open() and close() acquire the necessary resources to use
- * the pin and correspondingly clean them up.
- */
-typedef struct {
-	/** On emulator, we just track the pin number so we can print it to the screen. */
-	int32_t pin_number;
-
-	/** 
-	 * Also on emulator track whether the pin is opened as an input so that we 
-	 * can print an error otherwise.
-	 */
-	bool is_input;
-} gpio_pin;
-
-/** 
- * GPIO_PIN_INVALID should be used to reset values of type gpio_pin similarly
- * to resetting a pointer to NULL or an fd to -1.
- */
-#define GPIO_PIN_INVALID (gpio_pin){ .pin_number = -1 }
-
-#else
-
-#ifdef USE_MMAP_GPIO
+/* gpio.h: contains an abstracted interface for GPIO operations. In this project,
+ * we only support the MMAP implementation for speed. */
 
 typedef struct {
 	/** 
@@ -64,22 +27,6 @@ typedef struct {
 } gpio_pin;
 
 #define GPIO_PIN_INVALID (gpio_pin){ .data_ptr = NULL, .mask = 0 }
-
-#else
-
-typedef struct {
-	/** 
-	 * When implemented through /sys/class/gpio, the gpio pins are simply a
-	 * file descriptor, to the gpioNUM/value file. This allows us to use write().
-	 */
-	int_fd fd;
-} gpio_pin;
-
-#define GPIO_PIN_INVALID (gpio_pin){ .fd = -1 }
-
-#endif
-
-#endif
 
 /**
  * Opens a gpio_pin corresponding to the given pin number. The pin number should
