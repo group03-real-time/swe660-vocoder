@@ -54,10 +54,8 @@ typedef struct {
 	.z2 = conj(zero)\
 }
 
-const double doublePi	=3.1415926535897932384626433832795028841971;
-const double doublePi_2	=1.5707963267948966192313216916397514420986;
-const double doubleLn2  =0.69314718055994530941723212145818;
-const double doubleLn10	=2.3025850929940456840179914546844;
+static const double pi	  = 3.1415926535897932384626433832795028841971;
+static const double pi2  = 1.5707963267948966192313216916397514420986;
 
 static inline
 complex polar(double r, double theta) {
@@ -74,7 +72,7 @@ void analog_design(analog_layout *analog) {
 	const int pairs = NUM_STAGES / 2;
 	for (int i = 0; i < pairs; ++i)
 	{
-		complex pole = polar(1., doublePi_2 + (2 * i + 1) * doublePi / n2);
+		complex pole = polar(1., pi2 + (2 * i + 1) * pi / n2);
 		complex zero = INFINITY;
 
 		analog->poles[i] = POLE_ZERO_PAIR_CONJ(pole, zero);
@@ -122,17 +120,17 @@ void band_pass_transform(analog_layout *analog, digital_layout *digital, double 
 	if (!(fc < 0.5)) app_fatal_error("filter design bug: fc must be < 0.5");
 	if (fc < 0.0)    app_fatal_error("filter design bug: fc must be >= 0.0");
 	
-	const double ww = 2 * doublePi * fw;
+	const double ww = 2 * pi * fw;
 
-	double wc2 = 2 * doublePi * fc - (ww / 2);
+	double wc2 = 2 * pi * fc - (ww / 2);
 	double wc  = wc2 + ww;
 	
 	/* Apparently the original source performs some clamping for very close
 	 * values to 0 and pi. */
 	if (wc2 < 1e-8)
 		wc2 = 1e-8;
-	if (wc  > doublePi-1e-8)
-		wc  = doublePi-1e-8;
+	if (wc  > pi-1e-8)
+		wc  = pi-1e-8;
 	
 	double a =     cos ((wc + wc2) * 0.5) /
 		cos ((wc - wc2) * 0.5);
@@ -224,7 +222,7 @@ complex cbq_response(bpf_cascaded_biquad *cbq, double_biquad *dbqs, double norma
 	if(normalized_frequency > 0.5) app_fatal_error("filter design bug: normalized_frequency must be <= 0.5");
 	if(normalized_frequency < 0.0) app_fatal_error("filter design bug: normalized_frequency must be >= 0.0");
 
-	double w = 2 * doublePi * normalized_frequency;
+	double w = 2 * pi * normalized_frequency;
 	const complex czn1 = polar(1., -w);
 	const complex czn2 = polar(1., -2 * w);
 	complex ch = 1.0;
@@ -272,7 +270,7 @@ void design_bpf(bpf_cascaded_biquad *cbq, double fc, double fw) {
 		bq_from_pzp(&d_biquads[i], &digital.poles[i]);
 	}
 
-	double response = sqrt(norm(cbq_response(cbq, d_biquads, digital.w / (2 * doublePi))));
+	double response = sqrt(norm(cbq_response(cbq, d_biquads, digital.w / (2 * pi))));
 
 	/* Scale will be applied separately. Do not apply the scale to the coefficients
 	 * directly like IIR1 does. */
