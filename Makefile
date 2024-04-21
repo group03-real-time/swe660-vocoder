@@ -1,4 +1,4 @@
--include config.mk
+-include paths.mk
 
 # --- Makefile Setup ---
 # The following components of the makefile are intended to be the main ones
@@ -46,25 +46,18 @@ BEAGLEBONE_SSH?=debian@192.168.7.2
 # What follows is the actual "implementation" of the makefile.
 
 # Phony targets: do not correspond to real files. Used to provide little commands.
-.PHONY: help all clean ssh conf-qemu conf-bbb conf-bbb-cross conf-qemu-and-cross firmware clean-firmware
+.PHONY: help all clean ssh firmware clean-firmware
 
-# If we don't have a config.mk: Build three configurations:
-# 1) for qemu
-# 2) for cross, without mmap
-# 3) for cross, with mmap
-ifeq (,$(wildcard ./config.mk))
-BUILDS=cross dsp32 dspfloat
+BUILDS=cross dsp32
 
-DEFS_dspfloat=DSP_FLOAT
+# Define the builds here. We don't support config.mk anymore.
 DEFS_dsp32=DSP_FIXED_32
 
 CC_cross=arm-linux-gnueabihf-gcc
 DEFS_cross=USE_MMAP_GPIO HARDWARE
 
 IS_CROSS_cross=true
-else
-BUILDS?=default
-endif
+
 TARGETS=$(BUILDS:%=$(TARGET)-%)
 
 PRU_SOURCES=adc.pru0.c i2sv1.pru1.c
@@ -224,81 +217,3 @@ ssh:
 # make ssh-kill: ssh into the beaglebone and try to kill "curprogram"
 ssh-kill:
 	echo "pidof curprogram | xargs kill" | ssh $(BEAGLEBONE_SSH)
-
-# ---Configuration generation commands ---
-# these all generate a config.mk corresponding
-# to a specific setup.
-
-# For qemu, we need to use the cross compiler. We also need to use -static
-# so that we can run the code in the qemu-arm.
-#
-# Also, define EMULATOR so our code knows we're using the emulator.
-conf-qemu: clean
-	@if test -f config.mk; then mv config.mk config.mk.old; fi
-	@echo BUILDS=qemu > config.mk
-	@echo CC_qemu=arm-linux-gnueabihf-gcc >> config.mk
-	@echo 'LDFLAGS_qemu:=$$(LDFLAGS) -static' >> config.mk
-	@echo DEFS_qemu=EMULATOR >> config.mk
-	@echo Configuration written to config.mk.
-
-# For the beaglebone, we can just use gcc (the default CC above). And, we
-# don't need any link flags or DEFS. We could add CFLAGS:=$(CFLAGS) -O2, though,
-# if we want the code to run faster on the beagle.
-conf-bbb: clean
-	@if test -f config.mk; then mv config.mk config.mk.old; fi
-	@echo '# Empty config' > config.mk
-	@echo Configuration written to config.mk.
-
-# Generates a setup for cross compiling for the beagle. This means we use the
-# cross compiler, but we don't define DEFS=EMULATOR, because we're running
-# on the beagle, not on the emulator.
-conf-bbb-cross: clean
-	@if test -f config.mk; then mv config.mk config.mk.old; fi
-	@echo BUILDS=cross > config.mk
-	@echo CC_cross=arm-linux-gnueabihf-gcc >> config.mk
-	@echo Configuration written to config.mk.
-
-conf-qemu-and-cross: clean
-	@if test -f config.mk; then mv config.mk config.mk.old; fi
-	@echo BUILDS=qemu cross > config.mk
-	@echo CC_qemu=arm-linux-gnueabihf-gcc >> config.mk
-	@echo 'LDFLAGS_qemu:=$$(LDFLAGS) -static' >> config.mk
-	@echo DEFS_qemu=EMULATOR >> config.mk
-	@echo CC_cross=arm-linux-gnueabihf-gcc >> config.mk
-	@echo Configuration written to config.mk.
-
-ifdef TARGET_qemu
-
-.PHONY: run-qemu
-
-# Defines a PHONY target for running qemu. If you don't want to type qemu-arm.
-run-qemu: $(TARGET_qemu)
-	qemu-arm $<
-
-endif
-
-# Shows a help menu.
-help:
-	@echo available phony targets:
-	@printf "\tmake all: build the target for all current configurations\n"
-	@$(foreach build,$(BUILDS),printf "\tmake $(build): build only $(TARGET)-$(build)\n";)
-	@echo
-	@printf "\tmake clean: clean built files\n"
-	@$(foreach build,$(BUILDS),printf "\tmake clean-$(build): clean built files for just $(build)\n";)
-	@echo
-	@printf "\tmake conf-qemu: generate config.mk for running in qemu\n"
-	@printf "\tmake conf-bbb: generate config.mk for building and running on the BeagleBone Black\n"
-	@printf "\tmake conf-bbb-cross: generate config.mk that builds with cross compiler, but targets the BeagleBone Black, not the emualtor\n"
-	@printf "\tmake conf-qemu-and-cross: generate config.mk that builds both qemu and cross compiled for BBB\n"
-	@echo
-	@printf "\tmake help: show this menu\n"
-	@echo
-ifdef TARGET_cross
-	@printf "\tmake run-cross: copies the compiled executable onto your BeagleBone over SSH, then runs it\n"
-	@echo
-endif
-ifdef TARGET_qemu
-	@printf "\tmake run-qemu: runs qemu-arm with the compiled executable\n"
-	@echo
-endif
-	@printf "basic usage: 'make conf-qemu' to create config.mk, then 'make' to compile and 'qemu-arm $(TARGET)-qemu' to run\n"

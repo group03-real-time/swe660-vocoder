@@ -8,6 +8,11 @@
 #endif
 #define VOCODER_BANDS 16
 
+/** 
+ * NOTE: DSP_FLOAT IS NOT LONGER SUPPORTED.
+ * The vocoder and dsp code still works with DSP_FLOAT, but the rest of the code
+ * base does not. As such, do not use it.
+ */
 #ifdef DSP_FLOAT
 
 #include <math.h>
