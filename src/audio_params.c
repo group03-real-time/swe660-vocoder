@@ -13,7 +13,7 @@
 
 static dsp_num
 param_exponential_lerp_factor(uint32_t adc_value) {
-	return 0;
+	return dsp_from_double(0.01 * pow(0.9999, adc_value));
 }
 
 static dsp_num

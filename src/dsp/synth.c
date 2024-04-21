@@ -38,6 +38,7 @@ synth_press(synth *syn, int note) {
 
 	/* Set state and frequency. */
 	syn->voices[idx].state = SYNTH_ATTACK;
+	syn->voices[idx].envelope = dsp_zero; /* The envelope must reset to 0 */
 	syn->voices[idx].age = syn->next_age;
 	syn->voices[idx].phase_step = phase_offset_table[note];
 
@@ -132,9 +133,36 @@ synth_voice_process(synth_voice *v, audio_params *ap) {
 	v->sample
 		= dsp_rshift(sawtooth, 1)
 		+ dsp_mul(white_noise, ap->noise_gain);
-	v->envelope = dsp_zero;
-	if(v->state != SYNTH_RELEASE) {
-		v->envelope = dsp_one;
+
+	/* Update envelope */
+	const dsp_num small_difference = dsp_from_double(0.02);
+
+	if(v->state == SYNTH_ATTACK) {
+		/* Ramp up from 0 to 1 */
+		dsp_num dif = dsp_one - v->envelope;
+		v->envelope += dsp_mul(dif, ap->attack);
+		if(dsp_abs(dif) <= small_difference) {
+			v->envelope = dsp_one;
+			v->state = SYNTH_DECAY;
+		}
+	}
+
+	if(v->state == SYNTH_DECAY) {
+		dsp_num dif = ap->sustain - v->envelope;
+		v->envelope += dsp_mul(dif, ap->decay);
+		if(dsp_abs(dif) <= small_difference) {
+			v->envelope = ap->sustain;
+			v->state = SYNTH_SUSTAIN;
+		}
+	}
+
+	if(v->state == SYNTH_RELEASE) {
+		dsp_num dif = dsp_zero - v->envelope;
+		v->envelope += dsp_mul(dif, ap->release);
+		if(dsp_abs(dif) <= small_difference) {
+			v->envelope = dsp_zero;
+			v->state = SYNTH_SUSTAIN;
+		}
 	}
 }
 

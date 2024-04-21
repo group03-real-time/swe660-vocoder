@@ -20,7 +20,7 @@ int main_os(int argc, char **argv) {
 	wav_io out;
 
 	wav_blank_or_die(&out, 
-		SAMPLE_RATE * 5, /* 5 seconds */
+		SAMPLE_RATE * 60 * 5, /* 5 minutes */
 		1,
 		SAMPLE_RATE);
 
@@ -30,6 +30,11 @@ int main_os(int argc, char **argv) {
 
 	audio_params ap;
 	audio_params_default(&ap);
+
+	ap.attack = dsp_from_double(0.00001);//dsp_from_double(0.0000001);//dsp_from_double(0.0002);
+	//ap.release = dsp_from_double(0.0002);
+	ap.decay = dsp_from_double(1); //dsp_from_double(1.0);
+	ap.sustain = dsp_from_double(0.0);
 
 	//int octave = 12 * 4;
 
