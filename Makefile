@@ -23,7 +23,6 @@ SRCS=\
 	subapps/offline_vocode_synth.c\
 	subapps/pru_play_wav.c\
 	subapps/pru_record_wav.c\
-	subapps/2x2_button_grid.c\
 	subapps/button_wiring_test.c\
 	pru/pru_interface.c\
 	dsp/bpf.c\

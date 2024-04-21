@@ -76,15 +76,11 @@ main(int argc, char **argv) {
 		return main_prw(argc, argv);
 	}
 
-	if(!strcmp(argv[1], "-bg")) {
-		return main_bg(argc, argv);
-	}
-
 	if(!strcmp(argv[1], "-bwt")) {
 		return main_bwt(argc, argv);
 	}
 #endif
 
-	printf("error: unknown option %s.  run -help to see available options", argv[1]);
+	printf("error: unknown option %s. run -help to see available options\n", argv[1]);
 	return 1;
 }
