@@ -3,6 +3,30 @@
 #include "pru/pru_interface.h"
 #include "gpio.h"
 
+#define INPUT_MAX 65536 /* NOTE: Must be synchronized with ADC_VIRTUAL_SAMPLES */
+
+/* Each param_ function performs some kind of transformation that maps the
+ * samples coming from the ADC into values usable within the DSP code.
+ *
+ * These transformations may use the floating point functions for simplicty,
+ * as they are not called very often and so do not have to be too fast. */
+
+static dsp_num
+param_exponential_lerp_factor(uint32_t adc_value) {
+	return 0;
+}
+
+static dsp_num
+param_linear(uint32_t adc_value) {
+	const dsp_num mul = dsp_one / INPUT_MAX;
+	return adc_value * mul;
+}
+
+static dsp_num
+param_gain(uint32_t adc_value) {
+	return dsp_from_double(pow(0.9999, adc_value));
+}
+
 static int32_t multiplexer_idx = 0;
 
 static gpio_pin multiplex_0 = GPIO_PIN_INVALID;
