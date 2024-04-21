@@ -19,6 +19,8 @@ extern int main_bg(int argc, char **argv);
 
 extern int main_app(int argc, char **argv);
 
+extern int main_bwt(int argc, char **argv);
+
 extern void hardware_init();
 
 int
@@ -75,6 +77,10 @@ main(int argc, char **argv) {
 
 	if(!strcmp(argv[1], "-bg")) {
 		return main_bg(argc, argv);
+	}
+
+	if(!strcmp(argv[1], "-bwt")) {
+		return main_bwt(argc, argv);
 	}
 #endif
 
