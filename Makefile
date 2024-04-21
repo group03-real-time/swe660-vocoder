@@ -23,6 +23,7 @@ SRCS=\
 	subapps/pru_play_wav.c\
 	subapps/pru_record_wav.c\
 	subapps/button_wiring_test.c\
+	subapps/audio_params_test.c\
 	pru/pru_interface.c\
 	dsp/bpf.c\
 	dsp/vocoder.c\

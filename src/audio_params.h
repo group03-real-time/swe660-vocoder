@@ -29,6 +29,6 @@ typedef struct {
 
 void audio_params_default(audio_params *ap);
 void audio_params_init_multiplexer();
-void audio_params_tick_multiplexer(audio_params *ap);
+void audio_params_tick_multiplexer(audio_params *ap, bool verbose);
 
 #endif

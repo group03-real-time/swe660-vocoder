@@ -3,6 +3,8 @@
 #include "pru/pru_interface.h"
 #include "gpio.h"
 
+#include <stdio.h> /* For verbose */
+
 #define INPUT_MAX 65536 /* NOTE: Must be synchronized with ADC_VIRTUAL_SAMPLES */
 
 /* Each param_ function performs some kind of transformation that maps the
@@ -90,7 +92,7 @@ audio_params_init_multiplexer() {
 }
 
 void
-audio_params_tick_multiplexer(audio_params *out) {
+audio_params_tick_multiplexer(audio_params *out, bool verbose) {
 	multiplex_seq_entry *seq = &multiplex_sequencer[multiplexer_idx];
 
 	/* Figure out where the dsp_num we want to write to is inside the audio_params */
@@ -98,6 +100,10 @@ audio_params_tick_multiplexer(audio_params *out) {
 
 	dsp_num input = pru_adc_read_without_reset(1);
 	*out_ptr = seq->fn(input); /* All sequencer values are on channel 1 */
+
+	if(verbose) {
+		printf("audio params: [%02d]: read ADC value %d => param value %f\n", multiplexer_idx, input, dsp_to_float(*out_ptr));
+	}
 
 	/* Finally, update the sequencer so that the next tick will udpate the next value */
 	multiplexer_idx += 1;

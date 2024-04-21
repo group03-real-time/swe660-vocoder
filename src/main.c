@@ -58,7 +58,7 @@ main_app(int argc, char **argv) {
 		audio_param_tick += 1;
 		if(audio_param_tick >= AUDIO_PARAM_TICK_RATE) {
 			audio_param_tick = 0;
-			audio_params_tick_multiplexer(&params);
+			audio_params_tick_multiplexer(&params, false);
 		}
 	}
 

@@ -19,6 +19,7 @@ extern int main_ovs(int argc, char **argv);
 extern int main_ppw(int argc, char **argv);
 extern int main_prw(int argc, char **argv);
 extern int main_bwt(int argc, char **argv);
+extern int main_apt(int argc, char **argv);
 
 extern int main_app(int argc, char **argv);
 
@@ -94,6 +95,11 @@ main(int argc, char **argv) {
 	/* Button Wiring Test */
 	if(!strcmp(argv[1], "-bwt")) {
 		HARDWARE_SUBAPP(main_bwt);
+	}
+
+	/* audio params test */
+	if(!strcmp(argv[1], "-apt")) {
+		HARDWARE_SUBAPP(main_apt);
 	}
 #endif
 
