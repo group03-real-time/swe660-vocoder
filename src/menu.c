@@ -61,6 +61,7 @@ main(int argc, char **argv) {
 		"  -ppw: 'PRU play wav': use the PRU audio setup to play a WAV file over i2s\n"
 		"  -prw: 'PRU record wav': use the PRU audio/sampling setup to record a WAV file over the ADC pin 0\n"
 		"  -bg: 'button grid': run an experimental 'button grid' setup to test it\n"
+		"  -bwt: 'button wiring test': tests to make sure all button GPIO pins can be read\n"
 		);
 		return 0;
 	}

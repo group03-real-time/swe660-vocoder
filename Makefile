@@ -48,15 +48,13 @@ BEAGLEBONE_SSH?=debian@192.168.7.2
 # Phony targets: do not correspond to real files. Used to provide little commands.
 .PHONY: help all clean ssh firmware clean-firmware
 
-BUILDS=cross dsp32
+BUILDS=hw dsptest
 
 # Define the builds here. We don't support config.mk anymore.
-DEFS_dsp32=DSP_FIXED_32
 
-CC_cross=arm-linux-gnueabihf-gcc
-DEFS_cross=USE_MMAP_GPIO HARDWARE
-
-IS_CROSS_cross=true
+CC_hw=arm-linux-gnueabihf-gcc
+DEFS_hw=USE_MMAP_GPIO HARDWARE
+IS_CROSS_hw=true
 
 TARGETS=$(BUILDS:%=$(TARGET)-%)
 
