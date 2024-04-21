@@ -10,6 +10,8 @@
 
 #include "hardware.h" /* For init and shutdown */
 
+/* Simply declare the main methods here, as this is the only place we use
+ * them (besides their actual definition). */
 extern int main_ov(int argc, char **argv);
 extern int main_os(int argc, char **argv);
 extern int main_ovs(int argc, char **argv);
@@ -30,6 +32,12 @@ do {\
 	return return_value;\
 } while(0)
 
+
+/**
+ * The main main method of the program simply looks at the first argument,
+ * and then defers to one of the "sub-app" mains. This is so that it is easy
+ * to add new test code and run it either on the hardware or elsewhere.
+ */
 int
 main(int argc, char **argv) {
 	if(argc <= 1) {
@@ -42,14 +50,17 @@ main(int argc, char **argv) {
 #endif
 	}
 
+	/* Offline vocode */
 	if(!strcmp(argv[1], "-ov")) {
 		return main_ov(argc, argv);
 	}
 
+	/* Offline synth */
 	if(!strcmp(argv[1], "-os")) {
 		return main_os(argc, argv);
 	}
 
+	/* Offline vocode synth */
 	if(!strcmp(argv[1], "-ovs")) {
 		return main_ovs(argc, argv);
 	}
@@ -63,7 +74,6 @@ main(int argc, char **argv) {
 		"if you are on hardware, some additional options are available:\n"
 		"  -ppw: 'PRU play wav': use the PRU audio setup to play a WAV file over i2s\n"
 		"  -prw: 'PRU record wav': use the PRU audio/sampling setup to record a WAV file over the ADC pin 0\n"
-		"  -bg: 'button grid': run an experimental 'button grid' setup to test it\n"
 		"  -bwt: 'button wiring test': tests to make sure all button GPIO pins can be read\n"
 		);
 		return 0;
@@ -71,14 +81,17 @@ main(int argc, char **argv) {
 
 /* These options only work on hardware */
 #ifdef HARDWARE
+	/* PRU play wav */
 	if(!strcmp(argv[1], "-ppw")) {
 		HARDWARE_SUBAPP(main_ppw);
 	}
 
+	/* PRU record wav */
 	if(!strcmp(argv[1], "-prw")) {
 		HARDWARE_SUBAPP(main_prw);
 	}
 
+	/* Button Wiring Test */
 	if(!strcmp(argv[1], "-bwt")) {
 		HARDWARE_SUBAPP(main_bwt);
 	}
