@@ -2,7 +2,7 @@
 
 #include "types.h"
 
-#define COUNT 8
+#define COUNT 24
 
 int pin_nuasdfsdfmbers[COUNT] = {
 	75,
@@ -45,31 +45,23 @@ int piasdfn_numbers[COUNT] = {
 	60,//60,//62, /* ? */
 };
 
-int pin_numbers_set_a[COUNT] = {
+int pin_numbers[COUNT] = {
 	110,
 	111,
-	//125,//
 	117,
 	49,
 	3,
-	//13,//
 	4,
 	48,
 	31,
 	30,
 	112,
-	//123,
 	14,
 	15,
 	2,
-	//12,
 	5,
 	51,
-	//40,
-	60
-};
-
-int pin_numbers[COUNT] = {
+	60,
 	66,
 	69,
 	45,
