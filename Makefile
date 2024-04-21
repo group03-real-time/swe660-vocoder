@@ -155,8 +155,10 @@ TARGET_$(1)=$(TARGET)-$(1)
 # Rule: compile, using our CC compiler, all of the object files together.
 #       Uses LDFLAGS as flags for the compiler (because we're actually
 #       just using the compiler to invoke the linker.)
-$$(TARGET_$(1)): $$(OBJS_$(1))
-	$$(CC_$(1)) $$^ -o $$@ $$(LDFLAGS_$(1))
+# Make sure the target depends on the firmware so that the firmware is always
+# built.
+$$(TARGET_$(1)): $$(OBJS_$(1)) firmware
+	$$(CC_$(1)) $$(OBJS_$(1)) -o $$@ $$(LDFLAGS_$(1))
 
 # Create a phony rule for building a specific version of the build, in case you
 # have two builds. Example: with conf-qemu-and-cross, you can run make qemu
