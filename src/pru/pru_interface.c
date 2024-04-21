@@ -120,9 +120,13 @@ pru_shutdown() {
 
 void
 pru_audio_prepare_writing() {
+	/* Reset the buffer data */
 	for(int i = 0; i < AUDIO_OUT_RINGBUF_SIZE; ++i) {
 		pru_audio->all_data[i] = 0;
 	}
+
+	/* Make the output pointer as far as possible from the input pointer
+	 * Note this is essentially write = read - 1 */
 	pru_audio->out_write = (pru_audio->out_read + AUDIO_OUT_RINGBUF_SIZE - 1) % AUDIO_OUT_RINGBUF_SIZE;
 }
 
@@ -131,53 +135,66 @@ pru_audio_write(int32_t sample) {
 	uint32_t u;
 	memcpy(&u, &sample, sizeof(u));
 
+	/* Each sample must be REVERSED for efficient processing by the PRU */
 	uint32_t rev = 0;
 	for(int i = 0; i < 32; ++i) {
-		//int j = (31 - i);
 		rev <<= 1;
 		rev |= (u >> i) & 1;
 	}
 
+	/* Compute the pointer value for the next sample */
 	uint32_t next = (pru_audio->out_write + 1) % AUDIO_OUT_RINGBUF_SIZE;
+
+	/* Yield while the buffer is full */
 	while(next == pru_audio->out_read && !pru_audio->out_empty) {
 		sched_yield();
-		//printf("empty = %d\n", pru_audio->empty);
 	}
 
+	/* Write the data into the ring buffer, then increment the output pointer */
 	pru_audio->all_data[pru_audio->out_write] = rev;
 	pru_audio->out_write = next;
 }
 
 void
 pru_audio_prepare_reading() {
+	/* Reset the buffer */
 	for(int i = 0; i < AUDIO_IN_RINGBUF_SIZE; ++i) {
 		pru_audio->all_data[AUDIO_OUT_RINGBUF_SIZE + i] = 0;
 	}
+
+	/* Make the input pointer as far from the output pointer as possible */
 	pru_audio->in_read = (pru_audio->in_write + 1) % AUDIO_IN_RINGBUF_SIZE;
 }
 
 int32_t
 pru_audio_read() {
+	/* Compute a gain factor to map the values to a "normalized" range of -0.5 to 0.5 */
 	const dsp_num gain = (dsp_one / 2) / (2048 * AUDIO_VIRTUAL_SAMPLECOUNT);
 	
+	/* Wait for new data in the buffer */
 	while(pru_audio->in_read == pru_audio->in_write) {
 		sched_yield();
 	}
 
+	/* Read the data and update the ring buffer pointer */
 	int32_t result = pru_audio->all_data[AUDIO_OUT_RINGBUF_SIZE + pru_audio->in_read];
 	pru_audio->in_read = (pru_audio->in_read + 1) % AUDIO_IN_RINGBUF_SIZE;
 
+	/* Compute the centered / normalized sample value */
 	result -= (2048 * AUDIO_VIRTUAL_SAMPLECOUNT);
-
 	return result * gain;
 }
 
 int32_t
 pru_adc_read_without_reset(int32_t channel) {
+	/* Reading without reset just involves reading the averaged value computed
+	 * by the PRU. */
 	return pru_adc->samples[channel];
 }
 
 void
 pru_adc_reset(int32_t channel) {
+	/* This flags this channel for reset by the PRU the next time it gets a sample
+	 * for this channel. */
 	pru_adc->sample_reset[channel] = 1;
 }
