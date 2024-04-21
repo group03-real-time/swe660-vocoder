@@ -38,6 +38,8 @@ app_show_utsname(void) {
 	puts("--- utsname ---");
 #endif
 	printf("  System name: %s\n", sys_info.sysname);
+	printf("      Release: %s\n", sys_info.release);
+	printf("      Version: %s\n", sys_info.version);
 	printf("  Node name: %s\n",   sys_info.nodename);
 	printf("  Machine: %s\n",     sys_info.machine);
 }
