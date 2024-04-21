@@ -27,12 +27,19 @@ typedef struct {
  * This library is MIT licensed.
 */
 
+/* --- Various helper data structures --- */
+
 typedef struct {
 	complex p1;
 	complex z1;
 	complex p2;
 	complex z2;
 } pole_zero_pair;
+
+typedef struct {
+	complex first;
+	complex second;
+} complex_pair;
 
 typedef struct {
 	pole_zero_pair poles[NUM_STAGES / 2];
@@ -46,6 +53,7 @@ typedef struct {
 	double gain;
 } digital_layout;
 
+#define COMPLEX_PAIR(a, b) (complex_pair){.first = a, .second = b}
 #define POLE_ZERO_PAIR_CONJ(pole, zero)\
 (pole_zero_pair){\
 	.p1 = pole,\
@@ -57,6 +65,7 @@ typedef struct {
 static const double pi	  = 3.1415926535897932384626433832795028841971;
 static const double pi2  = 1.5707963267948966192313216916397514420986;
 
+/* --- Helper functions for complex math --- */
 static inline
 complex polar(double r, double theta) {
 	return r * (cos(theta) + I * sin(theta));
@@ -67,7 +76,16 @@ complex addmul(complex a, double v, complex b) {
 	 return (creal(a) + v * creal(b)) + I * (cimag(a) + v * cimag(b));
 }
 
-void analog_design(analog_layout *analog) {
+static inline double
+norm(complex c) {
+	double i = cimag(c);
+	double r = creal(c);
+	return i * i + r * r;
+}
+
+static void
+analog_design(analog_layout *analog) {
+	/* Appears to perform the analog filter design. */
 	const double n2 = 2 * NUM_STAGES;
 	const int pairs = NUM_STAGES / 2;
 	for (int i = 0; i < pairs; ++i)
@@ -76,25 +94,18 @@ void analog_design(analog_layout *analog) {
 		complex zero = INFINITY;
 
 		analog->poles[i] = POLE_ZERO_PAIR_CONJ(pole, zero);
-		//printf("poles[%d].p1, z1 = %f %f ; %f %f\n", i, creal(analog->poles[i].p1), cimag(analog->poles[i].p1), creal(analog->poles[i].z1), cimag(analog->poles[i].z1));
 	}
 
 	analog->w    = 0.0;
 	analog->gain = 1.0;
 }
 
-typedef struct {
-	complex first;
-	complex second;
-} complex_pair;
-
-#define COMPLEX_PAIR(a, b) (complex_pair){.first = a, .second = b}
-
-complex_pair bp_transform_pair(complex c, double b, double a2, double b2, double ab_2) {
+static complex_pair
+bp_transform_pair(complex c, double b, double a2, double b2, double ab_2) {
 	if (creal(c) == INFINITY)
 		return COMPLEX_PAIR(-1, 1);
 	
-	c = (1. + c) / (1. - c); // bilinear
+	c = (1. + c) / (1. - c); /* bilinear transform */
 	
 	complex v = 0;
 	v = addmul (v, 4 * (b2 * (a2 - 1) + 1), c);
@@ -116,7 +127,8 @@ complex_pair bp_transform_pair(complex c, double b, double a2, double b2, double
 	return COMPLEX_PAIR (u/d, v/d);
 }
 
-void band_pass_transform(analog_layout *analog, digital_layout *digital, double fc, double fw) {
+static void
+band_pass_transform(analog_layout *analog, digital_layout *digital, double fc, double fw) {
 	if (!(fc < 0.5)) app_fatal_error("filter design bug: fc must be < 0.5");
 	if (fc < 0.0)    app_fatal_error("filter design bug: fc must be >= 0.0");
 	
@@ -156,13 +168,8 @@ void band_pass_transform(analog_layout *analog, digital_layout *digital, double 
 	digital->gain = analog->gain;
 }
 
-double norm(complex c) {
-	double i = cimag(c);
-	double r = creal(c);
-	return i * i + r * r;
-}
-
-void bq_set_coefficients(double_biquad *bq, double a0, double a1, double a2, double b0, double b1, double b2) {
+static void
+bq_set_coefficients(double_biquad *bq, double a0, double a1, double a2, double b0, double b1, double b2) {
 	bq->a1 = a1 / a0;
 	bq->a2 = a2 / a0;
 	bq->b0 = b0 / a0;
@@ -170,7 +177,12 @@ void bq_set_coefficients(double_biquad *bq, double a0, double a1, double a2, dou
 	bq->b2 = b2 / a0;
 }
 
-void bq_from_pzp(double_biquad *bq, pole_zero_pair *pzp) {
+static void
+bq_from_pzp(double_biquad *bq, pole_zero_pair *pzp) {
+	/* This function computes the coefficients for a biquad based on a pole
+	 * zero pair. This is helpful for us, as biquads are at least something
+	 * we have some experience with. */
+
 	const double a0 = 1;
 	double a1;
 	double a2;
@@ -216,9 +228,8 @@ void bq_from_pzp(double_biquad *bq, pole_zero_pair *pzp) {
 	bq_set_coefficients(bq, a0, a1, a2, b0, b1, b2);
 }
 
-
-
-complex cbq_response(bpf_cascaded_biquad *cbq, double_biquad *dbqs, double normalized_frequency) {
+static complex
+cbq_response(bpf_cascaded_biquad *cbq, double_biquad *dbqs, double normalized_frequency) {
 	if(normalized_frequency > 0.5) app_fatal_error("filter design bug: normalized_frequency must be <= 0.5");
 	if(normalized_frequency < 0.0) app_fatal_error("filter design bug: normalized_frequency must be >= 0.0");
 
@@ -246,7 +257,8 @@ complex cbq_response(bpf_cascaded_biquad *cbq, double_biquad *dbqs, double norma
 	return ch / cbot;
 }
 
-void bq_from_dbq(bpf_biquad *bq, double_biquad *dbq) {
+static void
+bq_from_dbq(bpf_biquad *bq, double_biquad *dbq) {
 	bq->a1 = dsp_from_double(dbq->a1);
 	bq->a2 = dsp_from_double(dbq->a2);
 
@@ -257,7 +269,8 @@ void bq_from_dbq(bpf_biquad *bq, double_biquad *dbq) {
 	//bq->b2 = dsp_from_double(dbq->b2);
 }
 
-void design_bpf(bpf_cascaded_biquad *cbq, double fc, double fw) {
+void
+design_bpf(bpf_cascaded_biquad *cbq, double fc, double fw) {
 	analog_layout analog = {0};
 	digital_layout digital = {0};
 	analog_design(&analog);
@@ -273,7 +286,7 @@ void design_bpf(bpf_cascaded_biquad *cbq, double fc, double fw) {
 	double response = sqrt(norm(cbq_response(cbq, d_biquads, digital.w / (2 * pi))));
 
 	/* Scale will be applied separately. Do not apply the scale to the coefficients
-	 * directly like IIR1 does. */
+	 * directly like IIR1 does. This ensures we get higher precision later. */
 	cbq->scale = dsp_from_double(digital.gain / response);
 
 	for(int i = 0; i < NUM_STAGES; ++i) {
