@@ -1,18 +1,28 @@
-#include "gpio.h"
+#ifndef BUTTONS_H
+#define BUTTONS_H
 
-enum buttonState {
-    RELEASED,
-    PRESSED,
-};
+#include "gpio.h"
+#include "types.h"
 
 
 typedef struct
 {
     gpio_pin gpio;
     int16_t pin_number;
-    enum buttonState state;
+    bool pressed;
     int16_t note;
 
 } button;
 
+/**
+ * Initializes the button array by opening all the required gpio pins and setting them to input mode
+*/
+void init_button_arr();
+
+/**
+ * Polls each button in the synth button array to detect if a button has been changed from released to pressed or vice versa
+*/
+void button_tick(synth *syn, bool verbose);
+
+#endif
 

@@ -12,7 +12,10 @@
 
 #include "pru/pru_interface.h"
 
+#include "buttons.h"
+
 #define AUDIO_PARAM_TICK_RATE 46
+#define BUTTON_READ_RATE 735
 
 int
 main_app(int argc, char **argv) {
@@ -31,20 +34,23 @@ main_app(int argc, char **argv) {
 	audio_params_default(&params);
 	audio_params_init_multiplexer();
 
-	/* Play some notes */
-	synth_press(&syn, 0);
-	synth_press(&syn, 7);
-	synth_press(&syn, 12);
-	synth_press(&syn, 28);
+	init_button_arr();
 
 	pru_audio_prepare_writing();
 	pru_audio_prepare_reading();
 
 	int audio_param_tick = 0;
+	int button_tick_count = 0;
 
 	while(app_running) {
 		/* Read the modulator */
 		uint32_t modulator = pru_audio_read();
+
+		button_tick_count +=1;
+		if(button_tick >= BUTTON_READ_RATE) {
+			button_tick_count = 0;
+			button_tick(&syn, false);			
+		}
 
 		dsp_num carrier = synth_process(&syn, &params);
 
@@ -60,6 +66,10 @@ main_app(int argc, char **argv) {
 			audio_param_tick = 0;
 			audio_params_tick_multiplexer(&params, false);
 		}
+
+
+
+
 	}
 
 	return 0;
