@@ -8,31 +8,34 @@
 #include <string.h>
 #include <stdio.h>
 
+#include "hardware.h" /* For init and shutdown */
+
 extern int main_ov(int argc, char **argv);
 extern int main_os(int argc, char **argv);
 extern int main_ovs(int argc, char **argv);
 
 extern int main_ppw(int argc, char **argv);
 extern int main_prw(int argc, char **argv);
-
-extern int main_bg(int argc, char **argv);
+extern int main_bwt(int argc, char **argv);
 
 extern int main_app(int argc, char **argv);
 
-extern int main_bwt(int argc, char **argv);
-
-extern void hardware_init();
+/* Helper macro to ensure that hardware-related subapps always get proper
+ * initialization and shutdown. */
+#define HARDWARE_SUBAPP(app_name)\
+do {\
+	hardware_init();\
+	int return_value = app_name(argc, argv);\
+	hardware_shutdown();\
+	return return_value;\
+} while(0)
 
 int
 main(int argc, char **argv) {
-#ifdef HARDWARE
-	/* Ensure PRU's (and mmap) is initialized when we're on the hardware. */
-	hardware_init();
-#endif
-
 	if(argc <= 1) {
 #ifdef HARDWARE
-		return main_app(argc, argv);
+		/* On hardware, running with 0 arguments just starts the main functionality. */
+		HARDWARE_SUBAPP(main_app);
 #else
 		puts("not on hardware: you must specify -ov, -os, -ovs or -help");
 		return 1;
@@ -69,15 +72,15 @@ main(int argc, char **argv) {
 /* These options only work on hardware */
 #ifdef HARDWARE
 	if(!strcmp(argv[1], "-ppw")) {
-		return main_ppw(argc, argv);
+		HARDWARE_SUBAPP(main_ppw);
 	}
 
 	if(!strcmp(argv[1], "-prw")) {
-		return main_prw(argc, argv);
+		HARDWARE_SUBAPP(main_prw);
 	}
 
 	if(!strcmp(argv[1], "-bwt")) {
-		return main_bwt(argc, argv);
+		HARDWARE_SUBAPP(main_bwt);
 	}
 #endif
 

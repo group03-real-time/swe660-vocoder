@@ -8,6 +8,8 @@
 #include <sys/mman.h>
 
 #include "app.h"
+#include "gpio.h"
+#include "pru/pru_interface.h"
 
 static int dev_mem_fd = -1;
 
@@ -16,6 +18,7 @@ static int dev_mem_fd = -1;
 typedef struct {
 	void *ptr;
 	uintptr_t key;
+	size_t map_length;
 } memory_mapping;
 
 static memory_mapping mappings[MAX_MAPPINGS];
@@ -24,12 +27,32 @@ static void
 mmap_init() {
 	for(int i = 0; i < MAX_MAPPINGS; ++i) {
 		mappings[i].ptr = NULL;
+
+		/* Note: A key of 0 will not correspond to any valid key, because
+		 * there's nothing interesting to map at 0 on the BeagleBone, and it's
+		 * usually just NULL anyways. */
 		mappings[i].key = 0;
+		mappings[i].map_length = 0;
 	}
 
 	dev_mem_fd = open("/dev/mem", O_RDWR | O_SYNC);
 	if(dev_mem_fd < 0) {
 		app_fatal_error("could not open /dev/mem fd for memory mapped IO. try with sudo?");
+	}
+}
+
+static void
+mmap_shutdown() {
+	/* Strictly speaking, we can just let the operating system clean up the
+	 * memory mappings for us. But doing it ourselves means we could also
+	 * in theory support functionality for e.g. restarting the app or something. */
+	for(int i = 0; i < MAX_MAPPINGS; ++i) {
+		if(mappings[i].ptr) {
+			munmap(mappings[i].ptr, mappings[i].map_length);
+			mappings[i].ptr = NULL;
+			mappings[i].key = 0;
+			mappings[i].map_length = 0;
+		}
 	}
 }
 
@@ -58,6 +81,7 @@ mmap_the_region:;
 	if(ptr != NULL) {
 		mappings[stored_idx].ptr = ptr;
 		mappings[stored_idx].key = key;
+		mappings[stored_idx].map_length = size;
 	}
 
 	return ptr;
@@ -86,4 +110,13 @@ hardware_init() {
 	gpio_init();
 	/* Initialize the pru mmap'd regions */
 	pru_init();
+}
+
+void
+hardware_shutdown() {
+	pru_shutdown();
+	gpio_shutdown();
+
+	/* Clean up all memory mappings */
+	mmap_shutdown();
 }

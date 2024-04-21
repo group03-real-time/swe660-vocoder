@@ -112,6 +112,13 @@ pru_init() {
 }
 
 void
+pru_shutdown() {
+	/* Stop both PRUs. You may want to disable this functionality when debugging PRUs. */
+	sysfs_write_string("/sys/class/remoteproc/remoteproc1/state", "stop");
+	sysfs_write_string("/sys/class/remoteproc/remoteproc2/state", "stop");
+}
+
+void
 pru_audio_prepare_writing() {
 	for(int i = 0; i < AUDIO_OUT_RINGBUF_SIZE; ++i) {
 		pru_audio->all_data[i] = 0;

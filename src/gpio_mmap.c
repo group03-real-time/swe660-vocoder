@@ -68,6 +68,11 @@ gpio_init() {
 	}
 }
 
+void
+gpio_shutdown() {
+	/* Does nothing at the moment. */
+}
+
 /**
  * A helper function to obtain the GPIO_START for a given index [0-3].
  * Increments refcounts and obtains the dev_mem_fd and mmaps as necessary.

@@ -11,4 +11,7 @@ void pru_audio_write(int32_t sample);
 int32_t pru_adc_read_without_reset(int32_t channel);
 void pru_adc_reset(int32_t channel);
 
+void pru_init();
+void pru_shutdown();
+
 #endif

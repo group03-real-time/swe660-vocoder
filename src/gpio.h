@@ -57,4 +57,16 @@ void gpio_close(gpio_pin pin);
  */
 bool gpio_pin_valid(int32_t pin_number);
 
+/**
+ * Initializes the GPIO subsystem. Should be called before opening any pins.
+ * Is part of hardware_init().
+ */
+void gpio_init();
+
+/**
+ * Shuts down the GPIO subsystem and cleans up resources. gpio_write and gpio_read
+ * should not be used afterward. Part of hardware_shutdown().
+ */
+void gpio_shutdown();
+
 #endif
