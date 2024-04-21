@@ -4,7 +4,11 @@
 
 #include "../app.h"
 
-/* Use drwav for all low level WAV reading/writing logic */
+/* We use drwav for all low level WAV reading/writing logic.
+ *
+ * This library is a "header-only" library, so we simply commit the header file
+ * into our code base and then include it here with this #define to get the
+ * code implementation. */
 #define DR_WAV_IMPLEMENTATION
 #include "dr_wav.h"
 
@@ -27,6 +31,7 @@ wav_read_or_die(wav_io *io, const char *path) {
 		app_fatal_error("could not open wav file for reading");
 	}
 
+	/* Convert the input samples into dsp_num */
 	dsp_num *buffer = calloc(channels * frames, sizeof(*buffer));
 
 	if(!buffer) {
