@@ -78,6 +78,7 @@ main(int argc, char **argv) {
 		"  -prw: 'PRU record wav': use the PRU audio/sampling setup to record a WAV file over the ADC pin 0\n"
 		"  -bwt: 'button wiring test': tests to make sure all button GPIO pins can be read\n"
 		"  -bh: 'button handling test': tests to make sure the button pressed/released functionality works\n"
+		"  -apt: 'audio params test': tests to see if the audio parameter reading works\n"
 		);
 		return 0;
 	}
