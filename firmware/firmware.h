@@ -24,6 +24,7 @@
 
 struct pru0_ds {
 	uint32_t magic;
+	uint32_t heartbeat;
 
 	/* The samples array contains the actual data for each channel.
 	 * Note: Audio = channel 0.

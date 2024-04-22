@@ -32,12 +32,15 @@ do {\
 	STEPDELAY_bit(idx).OPENDELAY = 0x98; /* Standard value..? */\
 } while(0)
 
+#define CM_WKUP_CLKSTCTRL  (*((volatile unsigned int *)0x44E00400))
+#define CM_WKUP_ADC_TSC_CLKCTRL  (*((volatile unsigned int *)0x44E004BC))
+
 static void config_adc() {
-	//while (!(CM_WKUP_ADC_TSC_CLKCTRL == 0x02)) {
-	//	CM_WKUP_CLKSTCTRL = 0;
-	//	CM_WKUP_ADC_TSC_CLKCTRL = 0x02;
+	while (!(CM_WKUP_ADC_TSC_CLKCTRL == 0x02)) {
+		CM_WKUP_CLKSTCTRL = 0;
+		CM_WKUP_ADC_TSC_CLKCTRL = 0x02;
 		/* Optional: implement timeout logic. */
-	//}
+	}
 
 	ADC_TSC.SYSCONFIG_bit.IDLEMODE = 1; /* Never idle..? */
 
@@ -162,7 +165,11 @@ do {\
 } while(0)
 
 	for(;;) {
+		sampler->heartbeat += 1;
+
 		if(ADC_TSC.FIFO0COUNT > 0) {
+			sampler->heartbeat = 0;
+
 			uint32_t next = ADC_TSC.FIFO0DATA;
 			uint32_t chan = (next >> 16) & 0xF;
 			uint32_t val = next & 0xFFF;
@@ -171,6 +178,8 @@ do {\
 		}
 
 		if(ADC_TSC.FIFO1COUNT > 0) {
+			sampler->heartbeat = 0;
+
 			/* Don't need the channel as this is always channel 0. */
 			uint32_t sample = ADC_TSC.FIFO1DATA_bit.ADCDATA;
 
