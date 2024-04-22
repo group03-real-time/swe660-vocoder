@@ -12,7 +12,6 @@ SRCS=\
 	gpio_mmap.c\
 	app.c\
 	gpio_pins.c\
-	good_user_input.c\
 	main.c\
 	menu.c\
 	hardware.c\

@@ -3,7 +3,6 @@
 
 #include "app.h"
 #include "gpio.h"
-#include "good_user_input.h"
 
 #include "audio_params.h"
 
