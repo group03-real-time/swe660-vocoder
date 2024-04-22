@@ -46,7 +46,7 @@ main_app(int argc, char **argv) {
 		/* Read the modulator */
 		uint32_t modulator = pru_audio_read();
 
-		button_tick_count +=1;
+		button_tick_count += 1;
 		if(button_tick_count >= BUTTON_READ_RATE) {
 			button_tick_count = 0;
 			button_tick(&syn, false);			

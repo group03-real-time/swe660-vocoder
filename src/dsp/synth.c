@@ -161,7 +161,6 @@ synth_voice_process(synth_voice *v, audio_params *ap) {
 		v->envelope += dsp_mul(dif, ap->release);
 		if(dsp_abs(dif) <= small_difference) {
 			v->envelope = dsp_zero;
-			v->state = SYNTH_SUSTAIN;
 		}
 	}
 }
@@ -220,6 +219,8 @@ synth_init(synth *syn) {
 	for(int i = 0; i < MAX_SYNTH_VOICES; ++i) {
 		/* All voices start out in release state */
 		syn->voices[i].state = SYNTH_RELEASE;
+
+		syn->voices[i].envelope = 0;
 
 		/* Initialize all white noises with different values for "variety" */
 		syn->voices[i].white_noise_generator = i;
