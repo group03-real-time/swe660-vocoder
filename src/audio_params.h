@@ -27,8 +27,25 @@ typedef struct {
 	synth_osc_params oscs[3];
 } audio_params;
 
+/**
+ * Initializes the audio params with the default values.
+ */
 void audio_params_default(audio_params *ap);
+
+/**
+ * Initializes the multiplexer code for reading audio params.
+ */
 void audio_params_init_multiplexer();
+
+/**
+ * Reads a value from the multiplexer into the associated param. Note that
+ * this only reads a single parameter at a time, and so should be ticked
+ * at up to 16 times the desired tick rate for the desired latency.
+ * 
+ * For example, if you want the parameters to be sampled at 60Hz, and there
+ * are 16 parameters in use, then this function must be ticked at 60Hz * 16
+ * instead.
+ */
 void audio_params_tick_multiplexer(audio_params *ap, bool verbose);
 
 #endif
