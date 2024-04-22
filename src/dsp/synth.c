@@ -24,8 +24,21 @@ static dsp_num sinc_first_step;
 
 void
 synth_press(synth *syn, int note) {
-	/* First, steal a voice. */
 	int idx = 0;
+
+	/* First, if there is a voice that is at envelope gain 0 (and in release or sustain),
+	 * then we can simply steal that voice. */
+	for(int i = 0; i < MAX_SYNTH_VOICES; ++i) {
+		if(syn->voices[i].state == SYNTH_RELEASE || syn->voices[i].state == SYNTH_SUSTAIN) {
+			if(syn->voices[i].envelope == 0) {
+				idx = i;
+				goto have_a_voice;
+			}
+		}
+	}
+
+	/* Otherwise, steal an active voice. Init to 0 then check the other ones. */
+	idx = 0;
 	uint32_t age = syn->voices[0].age;
 
 	/* Find the voice that has least recently been stolen. */
@@ -36,6 +49,7 @@ synth_press(synth *syn, int note) {
 		}
 	}
 
+have_a_voice:
 	/* Set state and frequency. */
 	syn->voices[idx].state = SYNTH_ATTACK;
 	syn->voices[idx].envelope = dsp_zero; /* The envelope must reset to 0 */
