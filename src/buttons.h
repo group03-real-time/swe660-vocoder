@@ -4,6 +4,8 @@
 #include "gpio.h"
 #include "types.h"
 
+#include "dsp/synth.h"
+
 
 typedef struct
 {

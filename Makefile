@@ -17,6 +17,7 @@ SRCS=\
 	menu.c\
 	hardware.c\
 	audio_params.c\
+	buttons.c\
 	subapps/offline_vocode.c\
 	subapps/offline_synth.c\
 	subapps/offline_vocode_synth.c\
@@ -24,6 +25,7 @@ SRCS=\
 	subapps/pru_record_wav.c\
 	subapps/button_wiring_test.c\
 	subapps/audio_params_test.c\
+	subapps/button_handling_test.c\
 	pru/pru_interface.c\
 	dsp/bpf.c\
 	dsp/vocoder.c\

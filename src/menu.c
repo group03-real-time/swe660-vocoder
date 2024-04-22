@@ -20,6 +20,7 @@ extern int main_ppw(int argc, char **argv);
 extern int main_prw(int argc, char **argv);
 extern int main_bwt(int argc, char **argv);
 extern int main_apt(int argc, char **argv);
+extern int main_bh(int argc, char **argv);
 
 extern int main_app(int argc, char **argv);
 
@@ -76,6 +77,7 @@ main(int argc, char **argv) {
 		"  -ppw: 'PRU play wav': use the PRU audio setup to play a WAV file over i2s\n"
 		"  -prw: 'PRU record wav': use the PRU audio/sampling setup to record a WAV file over the ADC pin 0\n"
 		"  -bwt: 'button wiring test': tests to make sure all button GPIO pins can be read\n"
+		"  -bh: 'button handling test': tests to make sure the button pressed/released functionality works\n"
 		);
 		return 0;
 	}
@@ -95,6 +97,10 @@ main(int argc, char **argv) {
 	/* Button Wiring Test */
 	if(!strcmp(argv[1], "-bwt")) {
 		HARDWARE_SUBAPP(main_bwt);
+	}
+
+	if(!strcmp(argv[1], "-bh")) {
+		HARDWARE_SUBAPP(main_bh);
 	}
 
 	/* audio params test */

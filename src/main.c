@@ -47,7 +47,7 @@ main_app(int argc, char **argv) {
 		uint32_t modulator = pru_audio_read();
 
 		button_tick_count +=1;
-		if(button_tick >= BUTTON_READ_RATE) {
+		if(button_tick_count >= BUTTON_READ_RATE) {
 			button_tick_count = 0;
 			button_tick(&syn, false);			
 		}
@@ -66,10 +66,6 @@ main_app(int argc, char **argv) {
 			audio_param_tick = 0;
 			audio_params_tick_multiplexer(&params, false);
 		}
-
-
-
-
 	}
 
 	return 0;
