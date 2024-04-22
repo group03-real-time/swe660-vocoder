@@ -30,11 +30,6 @@ main_app(int argc, char **argv) {
 	synth syn;
 	synth_init(&syn);
 
-	//synth_press(&syn, 0);
-	//synth_press(&syn, 7);
-	//synth_press(&syn, 12);
-	//synth_press(&syn, 28);
-
 	audio_params params;
 	audio_params_default(&params);
 	audio_params_init_multiplexer();

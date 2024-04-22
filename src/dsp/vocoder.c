@@ -48,14 +48,7 @@ vc_process(vocoder *v, dsp_num mod, dsp_num car) {
 	if(v->sum_ef != 0) {
 		amp = dsp_div(v->mod_ef, v->sum_ef);
 	}
-
-	static int i = 0;
-	i+=1;
-	if(i >= 400) {
-		printf("amp = %d | mod_ef = %d sum_ef = %d sum = %d\n", amp, v->mod_ef, v->sum_ef, sum);
-		i = 0;
-	}
-
+	
 	/* If the sum is 0, that means there's no carrier signal: so don't have
 	 * any output signal either. */
 

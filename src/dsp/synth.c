@@ -176,16 +176,6 @@ synth_process(synth *syn, audio_params *ap) {
 		suml += dsp_mul_large(v->sample, v->envelope);
 	}
 
-	static int i = 0;
-	i += 1;
-	if(i >= 400) {
-		printf("synth: suml = %lld\n", suml);
-		for(int i = 0; i < MAX_SYNTH_VOICES; ++i) {
-			printf("envelope[%d] = %d\n", i, syn->voices[i].envelope);
-		}
-		i = 0;
-	}
-
 	return dsp_compact(suml);
 }
 
