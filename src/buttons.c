@@ -3,16 +3,42 @@
 #include "dsp/synth.h"
 #include "gpio.h"
 
+#define BUTTON(pin_number_val, note_val) { \
+	.gpio = GPIO_PIN_INVALID, \
+	.pin_number = pin_number_val, \
+	.pressed = 0, \
+	.note = note_val \
+}
 
 /**
  * Define the hardcoded button array with associated BBB pin numbers and notes for the
  * synth to play
 */
 button button_arr [] = {
-    { .gpio = GPIO_PIN_INVALID, .pin_number = 44, .pressed = 0, .note = 1 }, 
-    { .gpio = GPIO_PIN_INVALID, .pin_number = 26, .pressed = 0, .note = 2 }, 
-    { .gpio = GPIO_PIN_INVALID, .pin_number = 46, .pressed = 0, .note = 3 }, 
-    { .gpio = GPIO_PIN_INVALID, .pin_number = 65, .pressed = 0, .note = 4 }, 
+    BUTTON(110, 0),
+	BUTTON(111, 1),
+	BUTTON(117, 2),
+	BUTTON(49, 3),
+	BUTTON(3, 4),
+	BUTTON(4, 5),
+	BUTTON(48, 6),
+	BUTTON(31, 7),
+	BUTTON(30, 8),
+	BUTTON(112, 9),
+	BUTTON(14, 10),
+	BUTTON(15, 11),
+	BUTTON(2, 12),
+	BUTTON(5, 13),
+	BUTTON(51, 14),
+	BUTTON(60, 15),
+	BUTTON(66, 16),
+	BUTTON(69, 17),
+	BUTTON(45, 18),
+	BUTTON(23, 19),
+	BUTTON(47, 20),
+	BUTTON(27, 21),
+	BUTTON(22, 22),
+	BUTTON(86, 23)
 };
 
 
