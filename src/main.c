@@ -30,6 +30,11 @@ main_app(int argc, char **argv) {
 	synth syn;
 	synth_init(&syn);
 
+	//synth_press(&syn, 0);
+	//synth_press(&syn, 7);
+	//synth_press(&syn, 12);
+	//synth_press(&syn, 28);
+
 	audio_params params;
 	audio_params_default(&params);
 	audio_params_init_multiplexer();
@@ -46,7 +51,7 @@ main_app(int argc, char **argv) {
 		/* Read the modulator */
 		uint32_t modulator = pru_audio_read();
 
-		button_tick_count +=1;
+		button_tick_count += 1;
 		if(button_tick_count >= BUTTON_READ_RATE) {
 			button_tick_count = 0;
 			button_tick(&syn, false);			

@@ -11,7 +11,7 @@
 dsp_num
 vc_process(vocoder *v, dsp_num mod, dsp_num car) {
 	const dsp_num lerp_factor_ef    = dsp_from_double(0.008);
-	const dsp_num lerp_factor_bigef = dsp_from_double(0.0002);
+	const dsp_num lerp_factor_bigef = dsp_from_double(0.0008);
 
 	memmove(v->mod_x + 1, v->mod_x, sizeof(dsp_num) * 2);
 	memmove(v->car_x + 1, v->car_x, sizeof(dsp_num) * 2);
@@ -43,11 +43,21 @@ vc_process(vocoder *v, dsp_num mod, dsp_num car) {
 	v->sum_ef += dsp_mul((dsp_abs(sum) - v->sum_ef), lerp_factor_bigef);
 
 	/* should be < 1 */
-	dsp_num amp = v->mod_ef;
+	dsp_num amp = 0;
 
 	if(v->sum_ef != 0) {
 		amp = dsp_div(v->mod_ef, v->sum_ef);
 	}
+
+	static int i = 0;
+	i+=1;
+	if(i >= 400) {
+		printf("amp = %d | mod_ef = %d sum_ef = %d sum = %d\n", amp, v->mod_ef, v->sum_ef, sum);
+		i = 0;
+	}
+
+	/* If the sum is 0, that means there's no carrier signal: so don't have
+	 * any output signal either. */
 
 	return dsp_mul(sum, amp);
 }

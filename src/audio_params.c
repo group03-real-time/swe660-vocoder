@@ -120,10 +120,12 @@ audio_params_tick_multiplexer(audio_params *out, bool verbose) {
 
 void
 audio_params_default(audio_params *ap) {
-	ap->attack  = dsp_one;
-	ap->decay   = dsp_one;
+	const double fast = dsp_from_double(0.005);
+
+	ap->attack  = fast;
+	ap->decay   = fast;
 	ap->sustain = dsp_one;
-	ap->release = dsp_one;
+	ap->release = fast;
 
 	ap->noise_gain  = dsp_from_double(1 / 32.0);
 	ap->output_gain = dsp_from_double(1 / 32.0);
