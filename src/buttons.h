@@ -12,11 +12,12 @@
 typedef struct
 {
     gpio_pin gpio;
-    int16_t pin_number;
+    
     bool pressed;
 	bool debounce[BUTTON_DEBOUNCE];
-    int16_t note;
-
+    
+	int16_t pin_number;
+	int16_t note;
 } button;
 
 /**
@@ -25,7 +26,7 @@ typedef struct
 void init_button_arr();
 
 /**
- * Polls each button in the synth button array to detect if a button has been changed from released to pressed or vice versa
+ * Polls the specified button in the synth button array to detect if a button has been changed from released to pressed or vice versa
 */
 void button_tick(synth *syn, int which, bool verbose);
 
