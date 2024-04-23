@@ -129,9 +129,16 @@ phase_small_decrement(dsp_num in, dsp_num step) {
 	return in;
 }
 
+static inline dsp_num
+single_waveform_sample(dsp_num phase, audio_params *ap) {
+	dsp_num saw = sawtooth_wave(phase);
+	dsp_num square = square_wave(phase);
+
+	return dsp_mul(square, ap->wave_shape) + dsp_mul(saw, (dsp_one - ap->wave_shape));
+}
 
 static inline dsp_num
-voice_compute_waveform(synth_voice *v) {
+voice_compute_waveform(synth_voice *v, audio_params *ap) {
 	const dsp_num total_step = v->phase_step;
 	const dsp_num first_step = dsp_mul(total_step, sinc_first_step);
 	const dsp_num step       = dsp_mul(total_step, sinc_table_step);
@@ -140,11 +147,11 @@ voice_compute_waveform(synth_voice *v) {
 	dsp_num phase_neg = phase_small_decrement(v->phase, first_step);
 
 	/* The sum includes the center sample with weight 1 */
-	dsp_largenum suml = sawtooth_wave(v->phase);
+	dsp_largenum suml = single_waveform_sample(v->phase, ap);
 
 	for(int i = 0; i < SINC_SIZE; ++i) {
-		dsp_num sample1 = sawtooth_wave(phase_pos);
-		dsp_num sample2 = sawtooth_wave(phase_neg);
+		dsp_num sample1 = single_waveform_sample(phase_pos, ap);
+		dsp_num sample2 = single_waveform_sample(phase_neg, ap);
 
 		suml += dsp_mul_large(sample1 + sample2, sinc_table[i]);
 
@@ -168,7 +175,7 @@ synth_voice_process(synth_voice *v, audio_params *ap) {
 
 	/* Keep it within the range -1, 1 for better mixing. */
 	const dsp_num white_noise = dsp_rshift(v->white_noise_generator, 2);
-	const dsp_num sawtooth = voice_compute_waveform(v);
+	const dsp_num sawtooth = voice_compute_waveform(v, ap);
 
 	v->sample
 		= dsp_rshift(sawtooth, 1)
