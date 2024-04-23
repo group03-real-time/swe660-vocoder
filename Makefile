@@ -84,7 +84,10 @@ PRU_LDFLAGS=--reread_libs --warn_sections --stack_size=0x100 --heap_size=0x100  
 
 # The top-level build rule / PHONY target all -- just corresponds to building
 # the final executable. Used to make it clear where the rules begin.
-all: $(TARGETS) firmware
+#
+# Note: By default, don't build the PC dsptest. This can be built manually
+# with 'make dsptest'.
+all: hw firmware
 
 firmware: $(PRU_TARGETS)
 
