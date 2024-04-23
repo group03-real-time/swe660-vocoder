@@ -28,7 +28,7 @@ static dsp_num
 param_tuning(uint32_t adc_value) {
 	float in = (adc_value / (float)INPUT_MAX);
 	in -= 0.5;
-	in *= 2;
+	in *= -2; /* Inverse direction */
 
 	/* Adjust up/down 2 semitones */
 	return dsp_from_double(pow(2.0, in / 6.0));
