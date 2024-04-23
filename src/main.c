@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <assert.h>
+#include <stdlib.h>
 
 #include <sched.h>
 
@@ -20,6 +21,15 @@
 
 int
 main_app(int argc, char **argv, bool just_synth) {
+	int delay_length = 0;
+
+	if(argc >= 2) {
+		delay_length = atoi(argv[2]);
+		if(delay_length < 0) {
+			app_fatal_error("must provide positive delay length (or none)");
+		}
+	}
+
 	/* utsname */
 	app_show_utsname();
 
@@ -57,6 +67,16 @@ main_app(int argc, char **argv, bool just_synth) {
 	int synth_debug_tick = 0;
 
 	int button_inner_loop_count = 0;
+
+	dsp_num *delay = NULL;
+	int delay_write = delay_length - 1;
+	int delay_read = 0;
+	if(delay_length > 0) {
+		delay = calloc(delay_length, sizeof(*delay));
+		if(!delay) {
+			app_fatal_error("could not allocate delay buffer");
+		}
+	}
 
 	while(app_running) {
 		/* Update button and audio params before the main DSP code to slightly
@@ -103,7 +123,17 @@ main_app(int argc, char **argv, bool just_synth) {
 
 		/* Apply output gain then write to the PRU */
 		out = dsp_mul(out, params.output_gain);
-		pru_audio_write(out);	
+
+		if(delay_length > 0) {
+			delay[delay_write] = out;
+			delay_write = (delay_write + 1) % delay_length;
+
+			pru_audio_write(delay[delay_read]);
+			delay_read = (delay_read + 1) % delay_length;
+		}
+		else {
+			pru_audio_write(out);	
+		}
 	}
 
 	return 0;

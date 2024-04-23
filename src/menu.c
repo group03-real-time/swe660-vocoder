@@ -45,7 +45,7 @@ do {\
  */
 int
 main(int argc, char **argv) {
-	if(argc <= 1) {
+	if(argc <= 1 || !strcmp(argv[1], "-app")) {
 #ifdef HARDWARE
 		/* On hardware, running with 0 arguments just starts the main functionality. */
 		HARDWARE_SUBAPP_ARGS(main_app, argc, argv, false);
