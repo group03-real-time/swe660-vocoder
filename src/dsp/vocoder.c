@@ -24,8 +24,8 @@ vc_process(vocoder *v, dsp_num mod, dsp_num car) {
 
 	v->car_lowpass += dsp_mul((car_in - v->car_lowpass), lerp_factor_in);
 
-	v->mod_x[0] = v->mod_lowpass;
-	v->car_x[0] = v->car_lowpass;
+	v->mod_x[0] = mod_in;//v->mod_lowpass;
+	v->car_x[0] = car_in;// v->car_lowpass;
 
 	dsp_largenum suml = dsp_zero;
 
