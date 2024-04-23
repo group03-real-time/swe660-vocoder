@@ -21,7 +21,17 @@ param_exponential_lerp_factor(uint32_t adc_value) {
 static dsp_num
 param_linear(uint32_t adc_value) {
 	const dsp_num mul = dsp_one / INPUT_MAX;
-	return adc_value * mul;
+	return dsp_one - (adc_value * mul);
+}
+
+static dsp_num
+param_tuning(uint32_t adc_value) {
+	float in = (adc_value / (float)INPUT_MAX);
+	in -= 0.5;
+	in *= 2;
+
+	/* Adjust up/down 2 semitones */
+	return dsp_from_double(pow(2.0, in / 6.0));
 }
 
 static dsp_num
@@ -46,15 +56,21 @@ typedef struct {
 	.fn = the_fn\
 }
 
+/* NOTE: Do to a wiring error, these have been slightly adjusted
+ * from the more natural values. */
 #define MULTIPLEX_PIN_0 67
-#define MULTIPLEX_PIN_1 68
+#define MULTIPLEX_PIN_1 26
 #define MULTIPLEX_PIN_2 44
-#define MULTIPLEX_PIN_3 26
+#define MULTIPLEX_PIN_3 68
 
+/* NOTE: These have been arranged in a particular order for the actual
+ * physical implentation. */
 static multiplex_seq_entry
 multiplex_sequencer[] = {
 	ENTRY(output_gain, param_gain),
-	ENTRY(noise_gain, param_gain)
+	ENTRY(noise_gain, param_gain),
+	ENTRY(wave_shape, param_linear),
+	ENTRY(tuning, param_tuning),
 };
 
 #define SEQUENCER_LEN (sizeof(multiplex_sequencer) / sizeof(*multiplex_sequencer))
@@ -103,7 +119,7 @@ audio_params_tick_multiplexer(audio_params *out, bool verbose) {
 	*out_ptr = seq->fn(input); /* All sequencer values are on channel 1 */
 
 	if(verbose) {
-		printf("audio params: [%02d]: read ADC value %d => param value %f\n", multiplexer_idx, input, dsp_to_float(*out_ptr));
+		printf("audio params: [%02d | %02d]: read ADC value %d => param value %f\n", multiplexer_idx, seq->offset, input, dsp_to_float(*out_ptr));
 	}
 
 	/* Finally, update the sequencer so that the next tick will udpate the next value */
@@ -131,9 +147,6 @@ audio_params_default(audio_params *ap) {
 	ap->noise_gain  = dsp_from_double(1 / 32.0);
 	ap->output_gain = dsp_from_double(1 / 32.0);
 
-	for(int i = 0; i < 3; ++i) {
-		ap->oscs[i].gain     = dsp_one;
-		ap->oscs[i].semitone = 0;
-		ap->oscs[i].shape    = dsp_one;
-	}
+	ap->tuning = dsp_zero; /* No deviation */
+	ap->wave_shape = dsp_zero; /* Base shape */
 }

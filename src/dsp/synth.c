@@ -150,7 +150,7 @@ voice_compute_waveform(synth_voice *v) {
 
 void
 synth_voice_process(synth_voice *v, audio_params *ap) {
-	v->phase += v->phase_step;
+	v->phase += dsp_mul(v->phase_step, ap->tuning);
 	while(v->phase >= dsp_one) {
 		v->phase -= dsp_one;
 	}
