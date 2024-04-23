@@ -45,6 +45,7 @@ main_app(int argc, char **argv) {
 
 	int audio_param_tick = 0;
 	int button_tick_count = 0;
+	int synth_debug_tick = 0;
 
 	while(app_running) {
 		/* Update button and audio params before the main DSP code to slightly
@@ -52,13 +53,19 @@ main_app(int argc, char **argv) {
 		button_tick_count += 1;
 		if(button_tick_count >= BUTTON_READ_RATE) {
 			button_tick_count = 0;
-			button_tick(&syn, false);			
+			button_tick(&syn, true);			
 		}
 
 		audio_param_tick += 1;
 		if(audio_param_tick >= AUDIO_PARAM_TICK_RATE) {
 			audio_param_tick = 0;
 			audio_params_tick_multiplexer(&params, false);
+		}
+
+		synth_debug_tick += 1;
+		if(synth_debug_tick >= 500) {
+			synth_print_active_notes(&syn);
+			synth_debug_tick = 0;
 		}
 
 		/* Read the modulator signal from the microphone */

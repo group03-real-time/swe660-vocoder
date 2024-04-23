@@ -77,33 +77,32 @@ void init_button_arr() {
     int16_t arr_length = sizeof(button_arr)/sizeof(button_arr[0]);
     for (int i=0; i < arr_length; i++) {
         button_arr[i].gpio = gpio_open(button_arr[i].pin_number, true);
+
+		for(int j = 0; j < BUTTON_DEBOUNCE; ++j) {
+			button_arr[i].debounce[j] = false;
+		}
     }
 }
 
 static bool
 button_update_debounce(button *b, bool *new_value) {
-	memmove(b->debounce, b->debounce + 1, sizeof(*b->debounce * (BUTTON_DEBOUNCE - 1)));
+	memmove(b->debounce, b->debounce + 1, sizeof(*b->debounce) * (BUTTON_DEBOUNCE - 1));
 	b->debounce[BUTTON_DEBOUNCE - 1] = gpio_read(b->gpio);
 
-	bool all_true = true;
-	bool all_false = true;
+	int true_count = 0;
 
 	for(int i = 0; i < BUTTON_DEBOUNCE; ++i) {
 		if(b->debounce[i]) {
-			all_false = false;
-		}
-
-		if(!b->debounce[i]) {
-			all_true = false;
+			true_count += 1;
 		}
 	}
 
-	if(all_true) {
+	if(true_count >= BUTTON_DEBOUNCE_MAJORITY) {
 		*new_value = true;
 		return true;
 	}
 
-	if(all_false) {
+	if((BUTTON_DEBOUNCE - true_count) >= BUTTON_DEBOUNCE_MAJORITY) {
 		*new_value = false;
 		return true;
 	}

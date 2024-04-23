@@ -87,4 +87,10 @@ void synth_release(synth *syn, int note);
  */
 dsp_num synth_process(synth *syn, audio_params *ap);
 
+/**
+ * Debugging method: Prints out the notes that are currently active on the
+ * synthesizer.
+ */
+void synth_print_active_notes(synth *syn);
+
 #endif

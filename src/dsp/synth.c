@@ -2,6 +2,7 @@
 
 #include <string.h>
 #include <math.h>
+#include <stdio.h>
 
 /**
  * We can't store frequencies directly, because our DSP numbers are only in the
@@ -61,6 +62,23 @@ have_a_voice:
 
 	/* Track next age value */
 	syn->next_age += 1;
+}
+
+static bool
+synth_voice_active(synth_voice *v) {
+	if(v->state == SYNTH_ATTACK || v->state == SYNTH_DECAY) return false;
+	return v->envelope != 0;
+}
+
+void
+synth_print_active_notes(synth *syn) {
+	printf("active notes: ");
+	for(int i = 0; i < MAX_SYNTH_VOICES; ++i) {
+		if(synth_voice_active(&syn->voices[i])) {
+			printf("%d (on voice %d) ", syn->voices[i].note, i);
+		}
+	}
+	puts("");
 }
 
 void
