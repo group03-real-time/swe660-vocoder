@@ -14,9 +14,9 @@
 */
 static dsp_num phase_offset_table[NUMBER_OF_NOTES];
 
-#define SINC_SIZE 15
-#define SINC_PHASE_START 0.3
-#define SINC_PHASE_STEP  0.2
+#define SINC_SIZE 5
+#define SINC_PHASE_START 0.4
+#define SINC_PHASE_STEP  0.4
 
 /* sinc table should consist of premultiplied sinc(x) * step_size (for riemann sum) */
 static dsp_num sinc_table[SINC_SIZE];
@@ -130,7 +130,7 @@ phase_small_decrement(dsp_num in, dsp_num step) {
 }
 
 static inline dsp_num
-single_waveform_sample(dsp_num phase, audio_params *ap) {
+voice_sample_waveform(dsp_num phase, audio_params *ap) {
 	dsp_num saw = sawtooth_wave(phase);
 	dsp_num square = square_wave(phase);
 
@@ -147,11 +147,30 @@ voice_compute_waveform(synth_voice *v, audio_params *ap) {
 	dsp_num phase_neg = phase_small_decrement(v->phase, first_step);
 
 	/* The sum includes the center sample with weight 1 */
-	dsp_largenum suml = single_waveform_sample(v->phase, ap);
+
+	dsp_largenum suml = 0;
+	int odd = (SINC_SIZE & 1);
+	{
+		dsp_num middle = voice_sample_waveform(v->phase, ap);
+
+		/* The middle sample is multiplied by 4 if we have odd count, by 2 if 
+		 * we have even count */
+		middle = odd ? dsp_lshift(middle, 2) : dsp_lshift(middle, 1);
+		suml = middle;
+	}
 
 	for(int i = 0; i < SINC_SIZE; ++i) {
-		dsp_num sample1 = single_waveform_sample(phase_pos, ap);
-		dsp_num sample2 = single_waveform_sample(phase_neg, ap);
+		odd = !odd;
+		int shift = 1 + odd;
+
+		dsp_num sample1 = voice_sample_waveform(phase_pos, ap);
+		dsp_num sample2 = voice_sample_waveform(phase_neg, ap);
+
+		/* The last sample is the endpoints and is not shifted. */
+		if(i < SINC_SIZE - 1) {
+			sample1 = dsp_lshift(sample1, shift);
+			sample2 = dsp_lshift(sample2, shift);
+		}
 
 		suml += dsp_mul_large(sample1 + sample2, sinc_table[i]);
 
@@ -246,15 +265,15 @@ synth_init(synth *syn) {
 	}
 
 	/* Compute sinc table */
-	double phase = SINC_PHASE_START;
+	double phase = SINC_PHASE_STEP;
 
 	/* first step: off from the x = 0 */
 	sinc_first_step = dsp_from_double(phase);
 	double step = SINC_PHASE_STEP;
 	for(int i = 0; i < SINC_SIZE; ++i) {
 		double y = sinc_eval(phase);
-		double w = step; /* riemann sum: areas of rectangles, precompute this multiply */
-		sinc_table[i] = dsp_from_double(y * w);
+		double w = step; /* composite simpson's rule: includes a 1/3 h factor out front (h is the step size) */
+		sinc_table[i] = dsp_from_double(y * w / 3.0);
 		phase += step;
 	}
 	
