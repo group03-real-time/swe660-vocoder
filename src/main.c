@@ -23,7 +23,7 @@ int
 main_app(int argc, char **argv, bool just_synth) {
 	int delay_length = 0;
 
-	if(argc >= 2) {
+	if(argc >= 3) {
 		delay_length = atoi(argv[2]);
 		if(delay_length < 0) {
 			app_fatal_error("must provide positive delay length (or none)");
