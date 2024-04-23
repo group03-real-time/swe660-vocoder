@@ -50,17 +50,21 @@ vc_process(vocoder *v, dsp_num mod, dsp_num car) {
 	v->mod_ef += dsp_mul((dsp_abs(mod) - v->mod_ef), lerp_factor_bigef);
 	v->sum_ef += dsp_mul((dsp_abs(sum) - v->sum_ef), lerp_factor_bigef);
 
-	/* should be < 1 */
-	dsp_num amp = 0;
+	/* Note: The overall amplification seems to mostly just make the software
+	 * behave worse on the actual hardware setup. SO, it is commented out
+	 * for now. */
 
-	if(v->sum_ef != 0) {
-		amp = dsp_div(v->mod_ef, v->sum_ef);
-	}
+	/* should be < 1 */
+	//dsp_num amp = 0;
+
+	//if(v->sum_ef != 0) {
+	//	amp = dsp_div(v->mod_ef, v->sum_ef);
+	//}
 	
 	/* If the sum is 0, that means there's no carrier signal: so don't have
 	 * any output signal either. */
 
-	return dsp_mul(sum, amp);
+	return sum;////dsp_mul(sum, amp);
 }
 
 void
