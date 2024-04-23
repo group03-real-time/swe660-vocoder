@@ -53,7 +53,8 @@ typedef struct {
 
 static multiplex_seq_entry
 multiplex_sequencer[] = {
-	ENTRY(output_gain, param_gain)
+	ENTRY(output_gain, param_gain),
+	ENTRY(noise_gain, param_gain)
 };
 
 #define SEQUENCER_LEN (sizeof(multiplex_sequencer) / sizeof(*multiplex_sequencer))
