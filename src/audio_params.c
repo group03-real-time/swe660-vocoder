@@ -144,9 +144,9 @@ audio_params_default(audio_params *ap) {
 	ap->sustain = dsp_one;
 	ap->release = fast;
 
-	ap->noise_gain  = dsp_from_double(1 / 32.0);
+	ap->noise_gain  = dsp_from_double(1 / 128.0);
 	ap->output_gain = dsp_from_double(1 / 32.0);
 
-	ap->tuning = dsp_zero; /* No deviation */
-	ap->wave_shape = dsp_zero; /* Base shape */
+	ap->tuning = dsp_one; /* No deviation */
+	ap->wave_shape = dsp_from_double(0.5); /* Base shape */
 }
