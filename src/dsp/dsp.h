@@ -3,11 +3,6 @@
 
 #include <stdint.h>
 
-#ifndef SAMPLE_RATE
-	#define SAMPLE_RATE 44100
-#endif
-#define VOCODER_BANDS 28
-
 /** 
  * NOTE: DSP_FLOAT IS NOT LONGER SUPPORTED.
  * The vocoder and dsp code still works with DSP_FLOAT, but the rest of the code

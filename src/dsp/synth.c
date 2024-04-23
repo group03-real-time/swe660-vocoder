@@ -1,5 +1,7 @@
 #include "synth.h"
 
+#include "dsp/dsp_perf.h"
+
 #include <string.h>
 #include <math.h>
 #include <stdio.h>

@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <assert.h>
 
+#include <sched.h>
+
 #include "app.h"
 #include "gpio.h"
 
@@ -23,6 +25,12 @@ main_app(int argc, char **argv) {
 
 	/* Use the loop for nicer exiting */
 	app_init_loop();
+
+	/* Set us to realtime priority so that we can do more DSP..? */
+	struct sched_param param = { .sched_priority = sched_get_priority_min(SCHED_FIFO) };
+	if(sched_setscheduler(0, SCHED_FIFO, &param) < 0) {
+		puts("note: NOT using realtime scheduler");
+	}
 
 	vocoder voc;
 	vc_init(&voc); /* vocoder */

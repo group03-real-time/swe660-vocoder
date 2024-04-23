@@ -6,8 +6,8 @@
 
 #include "dsp/synth.h"
 
-#define BUTTON_DEBOUNCE 16
-#define BUTTON_DEBOUNCE_MAJORITY 16
+#define BUTTON_DEBOUNCE 8
+#define BUTTON_DEBOUNCE_MAJORITY 8
 
 typedef struct
 {

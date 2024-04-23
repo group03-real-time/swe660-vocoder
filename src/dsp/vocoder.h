@@ -2,6 +2,7 @@
 #define VOCODER_H
 
 #include "dsp.h"
+#include "dsp_perf.h"
 #include "bpf.h"
 
 /**

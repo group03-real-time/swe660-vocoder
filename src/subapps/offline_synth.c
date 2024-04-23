@@ -3,6 +3,7 @@
  */
 
 #include "dsp/synth.h"
+#include "dsp/dsp_perf.h"
 #include "wav/wav.h"
 
 #include <stdint.h>

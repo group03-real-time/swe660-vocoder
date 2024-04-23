@@ -72,7 +72,7 @@ vc_init(vocoder *v) {
 	memset(v, 0, sizeof(*v));
 	
 	double min_freq = 0;
-	double max_freq = 5000.0 / SAMPLE_RATE;
+	double max_freq = 8000.0 / SAMPLE_RATE;
 	double range = (max_freq - min_freq);
 
 	double freq_div = range / (VOCODER_BANDS + 1);
