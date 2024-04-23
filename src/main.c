@@ -14,7 +14,7 @@
 #include "buttons.h"
 
 #define AUDIO_PARAM_TICK_RATE 46
-#define BUTTON_READ_RATE 735
+#define BUTTON_READ_RATE (735 / BUTTON_DEBOUNCE)
 
 int
 main_app(int argc, char **argv) {

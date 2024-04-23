@@ -6,12 +6,14 @@
 
 #include "dsp/synth.h"
 
+#define BUTTON_DEBOUNCE 4
 
 typedef struct
 {
     gpio_pin gpio;
     int16_t pin_number;
     bool pressed;
+	bool debounce[BUTTON_DEBOUNCE];
     int16_t note;
 
 } button;
