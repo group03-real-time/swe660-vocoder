@@ -22,17 +22,20 @@ extern int main_bwt(int argc, char **argv);
 extern int main_apt(int argc, char **argv);
 extern int main_bh(int argc, char **argv);
 
-extern int main_app(int argc, char **argv);
+extern int main_app(int argc, char **argv, bool just_synth);
 
-/* Helper macro to ensure that hardware-related subapps always get proper
- * initialization and shutdown. */
-#define HARDWARE_SUBAPP(app_name)\
+#define HARDWARE_SUBAPP_ARGS(app_name, ...)\
 do {\
 	hardware_init();\
-	int return_value = app_name(argc, argv);\
+	int return_value = app_name(__VA_ARGS__);\
 	hardware_shutdown();\
 	return return_value;\
 } while(0)
+
+/* Helper macro to ensure that hardware-related subapps always get proper
+ * initialization and shutdown. */
+#define HARDWARE_SUBAPP(app_name) HARDWARE_SUBAPP_ARGS(app_name, argc, argv)
+
 
 
 /**
@@ -45,7 +48,7 @@ main(int argc, char **argv) {
 	if(argc <= 1) {
 #ifdef HARDWARE
 		/* On hardware, running with 0 arguments just starts the main functionality. */
-		HARDWARE_SUBAPP(main_app);
+		HARDWARE_SUBAPP_ARGS(main_app, argc, argv, false);
 #else
 		puts("not on hardware: you must specify -ov, -os, -ovs or -help");
 		return 1;
@@ -79,6 +82,7 @@ main(int argc, char **argv) {
 		"  -bwt: 'button wiring test': tests to make sure all button GPIO pins can be read\n"
 		"  -bh: 'button handling test': tests to make sure the button pressed/released functionality works\n"
 		"  -apt: 'audio params test': tests to see if the audio parameter reading works\n"
+		"  -synth: runs the main app, but without the vocoder; essentially makes the app into a synthesizer.\n"
 		);
 		return 0;
 	}
@@ -107,6 +111,10 @@ main(int argc, char **argv) {
 	/* audio params test */
 	if(!strcmp(argv[1], "-apt")) {
 		HARDWARE_SUBAPP(main_apt);
+	}
+
+	if(!strcmp(argv[1], "-synth")) {
+		HARDWARE_SUBAPP_ARGS(main_app, argc, argv, true);
 	}
 #endif
 

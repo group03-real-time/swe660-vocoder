@@ -19,12 +19,19 @@
 #define BUTTON_READ_RATE (735 / (BUTTON_COUNT * BUTTON_DEBOUNCE))
 
 int
-main_app(int argc, char **argv) {
+main_app(int argc, char **argv, bool just_synth) {
 	/* utsname */
 	app_show_utsname();
 
 	/* Use the loop for nicer exiting */
 	app_init_loop();
+
+	/* IMPORTANT:
+	 * We were using the real time scheduler, but it turns out it introduces
+	 * stuttering in the output signal for some reason.
+	 * 
+	 * Using the non-real time scheduler reuslts in a perfectly fine signal,
+	 * as can be seen if running -synth. */
 
 	vocoder voc;
 	vc_init(&voc); /* vocoder */
@@ -84,7 +91,15 @@ main_app(int argc, char **argv) {
 		dsp_num carrier = synth_process(&syn, &params);
 
 		/* The output signal is vocoded */
-		dsp_num out = carrier; vc_process(&voc, modulator, carrier);
+		dsp_num out = vc_process(&voc, modulator, carrier);
+
+		if(just_synth) {
+			/* Note: It's fine that we're wasting a bunch of time also
+			 * computing the vocoder. This makes it easy to figure out if
+			 * the vocoder is taking too long. (Just listen to the synth for
+			 * jank). */
+			out = carrier;
+		}
 
 		/* Apply output gain then write to the PRU */
 		out = dsp_mul(out, params.output_gain);
