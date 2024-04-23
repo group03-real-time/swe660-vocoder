@@ -19,6 +19,11 @@ typedef struct {
 	/** The envelope followers for each filtered modulator signal. */
 	dsp_num envelope_follow[VOCODER_BANDS];
 
+	/* Slightly low pass the modulator using a lerp */
+	dsp_num mod_lowpass;
+
+	dsp_num car_lowpass;
+
 	/**
 	 * The input array for the filters. This is used to keep the filter chain
 	 * efficient (the input to each one is the output of the previous), but

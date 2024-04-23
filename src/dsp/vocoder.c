@@ -13,11 +13,19 @@ vc_process(vocoder *v, dsp_num mod, dsp_num car) {
 	const dsp_num lerp_factor_ef    = dsp_from_double(0.008);
 	const dsp_num lerp_factor_bigef = dsp_from_double(0.0008);
 
+	const dsp_num lerp_factor_in = dsp_from_double(0.08);
+
 	memmove(v->mod_x + 1, v->mod_x, sizeof(dsp_num) * 2);
 	memmove(v->car_x + 1, v->car_x, sizeof(dsp_num) * 2);
 
-	v->mod_x[0] = mod * INPUT_EXTRA_MUL;
-	v->car_x[0] = car * INPUT_EXTRA_MUL;
+	dsp_num mod_in = mod * INPUT_EXTRA_MUL;
+	dsp_num car_in = car * INPUT_EXTRA_MUL;
+	v->mod_lowpass += dsp_mul((mod_in - v->mod_lowpass), lerp_factor_in);
+
+	v->car_lowpass += dsp_mul((car_in - v->car_lowpass), lerp_factor_in);
+
+	v->mod_x[0] = v->mod_lowpass;
+	v->car_x[0] = v->car_lowpass;
 
 	dsp_largenum suml = dsp_zero;
 
