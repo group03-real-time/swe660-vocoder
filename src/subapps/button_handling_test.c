@@ -9,6 +9,8 @@ main_bh(int argc, char **argv) {
 	synth_init(&syn);
     
     for(;;) {
-        button_tick(&syn, true);
+		for(int i = 0; i < BUTTON_COUNT; ++i) {
+       		button_tick(&syn, i, true);
+		}
     }
 }

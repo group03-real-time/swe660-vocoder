@@ -111,34 +111,33 @@ button_update_debounce(button *b, bool *new_value) {
 	return false;
 }
 
-void button_tick(synth *syn, bool verbose)
+void button_tick(synth *syn, int which, bool verbose)
 {
-  int16_t arr_length = sizeof(button_arr)/sizeof(button_arr[0]);
-  for (int i=0; i < arr_length; i++) {
-    
-    bool curr_btn_read = false;
-	if(!button_update_debounce(&button_arr[i], &curr_btn_read)) {
+  //int16_t arr_length = sizeof(button_arr)/sizeof(button_arr[0]);
+  //for (int i=0; i < arr_length; i++) {
+	bool curr_btn_read = false;
+	if(!button_update_debounce(&button_arr[which], &curr_btn_read)) {
 		/* If there is no valid state for the button, just skip it. */
-		continue;
+		return;
 	}
 
-    if (curr_btn_read) {
-        if (!button_arr[i].pressed) { 
-            synth_press(syn, button_arr[i].note); 
-            if(verbose) {
-                printf("Button %d pressed\n", button_arr[i].pin_number);
-            }
-            button_arr[i].pressed = true;
-        }
-    }
+	if (curr_btn_read) {
+		if (!button_arr[which].pressed) { 
+			synth_press(syn, button_arr[which].note); 
+			if(verbose) {
+				printf("Button %d pressed\n", button_arr[which].pin_number);
+			}
+			button_arr[which].pressed = true;
+		}
+	}
 	else {
-        if ((button_arr[i].pressed)) {
-            synth_release(syn, button_arr[i].note); 
-            if(verbose) {
-                printf("Button %d released\n", button_arr[i].pin_number);
-            }
-            button_arr[i].pressed = false;
-        }
-    }
-  }
+		if ((button_arr[which].pressed)) {
+			synth_release(syn, button_arr[which].note); 
+			if(verbose) {
+				printf("Button %d released\n", button_arr[which].pin_number);
+			}
+			button_arr[which].pressed = false;
+		}
+	}
+  //}
 }

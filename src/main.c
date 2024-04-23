@@ -15,8 +15,8 @@
 
 #include "buttons.h"
 
-#define AUDIO_PARAM_TICK_RATE 46
-#define BUTTON_READ_RATE (735 / BUTTON_DEBOUNCE)
+#define AUDIO_PARAM_TICK_RATE 183
+#define BUTTON_READ_RATE (735 / (BUTTON_COUNT * BUTTON_DEBOUNCE))
 
 int
 main_app(int argc, char **argv) {
@@ -25,12 +25,6 @@ main_app(int argc, char **argv) {
 
 	/* Use the loop for nicer exiting */
 	app_init_loop();
-
-	/* Set us to realtime priority so that we can do more DSP..? */
-	struct sched_param param = { .sched_priority = sched_get_priority_min(SCHED_FIFO) };
-	if(sched_setscheduler(0, SCHED_FIFO, &param) < 0) {
-		puts("note: NOT using realtime scheduler");
-	}
 
 	vocoder voc;
 	vc_init(&voc); /* vocoder */
@@ -55,13 +49,20 @@ main_app(int argc, char **argv) {
 	int button_tick_count = 0;
 	int synth_debug_tick = 0;
 
+	int button_inner_loop_count = 0;
+
 	while(app_running) {
 		/* Update button and audio params before the main DSP code to slightly
 		 * reduce latency */
 		button_tick_count += 1;
 		if(button_tick_count >= BUTTON_READ_RATE) {
 			button_tick_count = 0;
-			button_tick(&syn, true);			
+			button_tick(&syn, button_inner_loop_count, true);
+
+			button_inner_loop_count += 1;
+			if(button_inner_loop_count >= BUTTON_COUNT) {
+				button_inner_loop_count = 0;
+			}			
 		}
 
 		audio_param_tick += 1;
@@ -83,7 +84,7 @@ main_app(int argc, char **argv) {
 		dsp_num carrier = synth_process(&syn, &params);
 
 		/* The output signal is vocoded */
-		dsp_num out = vc_process(&voc, modulator, carrier);
+		dsp_num out = carrier; vc_process(&voc, modulator, carrier);
 
 		/* Apply output gain then write to the PRU */
 		out = dsp_mul(out, params.output_gain);

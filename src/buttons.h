@@ -27,7 +27,9 @@ void init_button_arr();
 /**
  * Polls each button in the synth button array to detect if a button has been changed from released to pressed or vice versa
 */
-void button_tick(synth *syn, bool verbose);
+void button_tick(synth *syn, int which, bool verbose);
+
+#define BUTTON_COUNT 24 /* Must be up to date for polling buttons correctly */
 
 #endif
 
