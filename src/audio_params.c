@@ -13,10 +13,14 @@
  * These transformations may use the floating point functions for simplicty,
  * as they are not called very often and so do not have to be too fast. */
 
-static dsp_num
-param_exponential_lerp_factor(uint32_t adc_value) {
-	return dsp_from_double(0.01 * pow(0.9999, adc_value));
-}
+// Note:
+// This function is unused in the current code. If we had the ADSR parameters
+// available (i.e. if we had time to solder another 4-knob circuit board,
+// etc), then the ADSR parameters would be controlled by this function.
+//static dsp_num
+//param_exponential_lerp_factor(uint32_t adc_value) {
+//	return dsp_from_double(0.01 * pow(0.9999, adc_value));
+//}
 
 static dsp_num
 param_linear(uint32_t adc_value) {
