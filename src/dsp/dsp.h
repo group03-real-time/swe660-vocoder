@@ -6,7 +6,7 @@
 #ifndef SAMPLE_RATE
 	#define SAMPLE_RATE 44100
 #endif
-#define VOCODER_BANDS 16
+#define VOCODER_BANDS 32
 
 /** 
  * NOTE: DSP_FLOAT IS NOT LONGER SUPPORTED.
