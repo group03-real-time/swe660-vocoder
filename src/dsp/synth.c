@@ -104,6 +104,14 @@ sawtooth_wave(dsp_num phase) {
 }
 
 static inline dsp_num
+square_wave(dsp_num phase) {
+	if(phase > (dsp_one / 2)) {
+		return -dsp_rshift(dsp_one, 2);
+	}
+	return dsp_rshift(dsp_one, 2);
+}
+
+static inline dsp_num
 phase_small_increment(dsp_num in, dsp_num step) {
 	in += step;
 	if(in > dsp_one) {
